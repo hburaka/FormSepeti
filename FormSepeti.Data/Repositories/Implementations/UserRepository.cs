@@ -52,5 +52,11 @@ namespace FormSepeti.Data.Repositories.Implementations
             _context.Users.Remove(user);
             return await _context.SaveChangesAsync() > 0;
         }
+
+        public async Task<User> GetByEmailOrPhoneAsync(string emailOrPhone)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == emailOrPhone || u.PhoneNumber == emailOrPhone);
+        }
     }
 }

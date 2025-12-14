@@ -1,0 +1,21 @@
+﻿@page
+@model FormSepeti.Web.Pages.Account.LoginModel
+@{ 
+    Layout = "/Pages/_Layout.cshtml";
+    ViewData["Title"]="Login"; 
+}
+<h3>Login</h3>
+@if (!string.IsNullOrEmpty(Model.Error)) 
+{ 
+    <div class="alert alert-danger">@Model.Error</div> 
+}
+<form method="post">
+  <div class="mb-3">
+    <input asp-for="EmailOrPhone" class="form-control" placeholder="Email or Phone" />
+  </div>
+  <div class="mb-3">
+    <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
+  </div>
+  <button class="btn btn-primary" type="submit">Login</button>
+  <a class="btn btn-link" asp-page="Register">Register</a>
+</form>

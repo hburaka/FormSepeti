@@ -11,5 +11,6 @@ namespace FormSepeti.Data.Repositories.Interfaces
         Task<User> CreateAsync(User user);
         Task<bool> UpdateAsync(User user);
         Task<bool> DeleteAsync(int userId);
+        Task<User> GetByEmailOrPhoneAsync(string emailOrPhone);
     }
 }
