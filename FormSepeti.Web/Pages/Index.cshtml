@@ -1,31 +1,20 @@
 ﻿@page
 @model FormSepeti.Web.Pages.IndexModel
 @{
-    Layout = "/Pages/_Layout.cshtml";
+    Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Anasayfa";
 }
 <div class="row">
-    <div class="col-12">
-        <h1>FormSepeti</h1>
+    <div class="col-lg-8 mx-auto text-center py-5">
+        <h1 class="display-5 mb-3">Formlarınızı Google Sheets'e Otomatik Kaydedin</h1>
+        <p class="lead mb-4">
+            JotForm formlarınızı toplayın, verilerinizi otomatik olarak Google Sheets'e yazdırın.
+            Meslek gruplarına özel paketler ve kolay entegrasyon.
+        </p>
 
-        @if (Model.IsAuthenticated)
-        {
-            <p>Hoşgeldiniz, <strong>@Model.UserName</strong>!</p>
-
-            <div class="mb-3">
-                <a class="btn btn-primary" asp-page="/Sheets/Manage">Google Sheets Yönetimi</a>
-                <a class="btn btn-secondary" asp-page="/Account/Register">Hesap Ayarları</a>
-            </div>
-
-            <form method="post" class="d-inline">
-                <button type="submit" asp-page-handler="Logout" class="btn btn-outline-danger">Çıkış Yap</button>
-            </form>
-        }
-        else
-        {
-            <p>Devam etmek için giriş yapın veya kayıt olun.</p>
-            <a class="btn btn-primary" asp-page="/Account/Login">Giriş Yap</a>
-            <a class="btn btn-link" asp-page="/Account/Register">Kayıt Ol</a>
-        }
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a class="btn btn-primary btn-lg" asp-page="/Account/Register">Kayıt Ol</a>
+            <a class="btn btn-outline-secondary btn-lg" asp-page="/Account/Login">Giriş Yap</a>
+        </div>
     </div>
 </div>

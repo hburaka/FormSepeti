@@ -1,0 +1,34 @@
+﻿@page
+@model FormSepeti.Web.Pages.Form.IndexModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Formlar";
+}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+        <h3>📂 @Model.GroupName Formları</h3>
+        <div>
+            <a class="btn btn-outline-secondary" asp-page="/Dashboard/SelectGroup">Grup Değiştir</a>
+            @if (!string.IsNullOrEmpty(Model.SpreadsheetUrl))
+            {
+                <a class="btn btn-primary" href="@Model.SpreadsheetUrl" target="_blank">Google Sheets'i Aç</a>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        @foreach (var f in Model.Forms)
+        {
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@f.Title @if(f.IsPaid){ <span class="badge bg-warning ms-2">ÜCRETLİ</span> } else { <span class="badge bg-success ms-2">ÜCRETSİZ</span> }</h5>
+                        <p class="text-muted">@f.Description</p>
+                        <a class="btn btn-primary" asp-page="/Form/View" asp-route-id="@f.Id">Formu Doldur</a>
+                        <a class="btn btn-link" asp-page="/Form/History" asp-route-id="@f.Id">Geçmiş Gönderimler</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

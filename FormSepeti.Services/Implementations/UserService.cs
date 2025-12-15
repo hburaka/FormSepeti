@@ -295,6 +295,9 @@ namespace FormSepeti.Services.Implementations
 
         public async Task<bool> IsEmailExistsAsync(string email)
         {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+
             var user = await _userRepository.GetByEmailAsync(email.ToLower().Trim());
             return user != null;
         }

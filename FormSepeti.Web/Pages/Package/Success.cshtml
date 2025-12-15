@@ -1,0 +1,23 @@
+﻿@page
+@model FormSepeti.Web.Pages.Package.SuccessModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Ödeme Başarılı";
+}
+<div class="row">
+    <div class="col-md-8 mx-auto text-center py-5">
+        <h2>✅ Ödeme Başarılı!</h2>
+        <p class="lead">Paketiniz aktive edildi.</p>
+
+        <div class="card mx-auto mb-3" style="max-width:420px;">
+            <div class="card-body text-start">
+                <p><strong>Ürün:</strong> @Model.PackageName</p>
+                <p><strong>Tutar:</strong> @Model.Amount</p>
+                <p><strong>İşlem No:</strong> @Model.TransactionId</p>
+            </div>
+        </div>
+
+        <a class="btn btn-primary" asp-page="/Form/Index">Formları Görüntüle</a>
+        <a class="btn btn-link" asp-page="/Dashboard/Index">Dashboard'a Dön</a>
+    </div>
+</div>

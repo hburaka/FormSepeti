@@ -1,0 +1,46 @@
+﻿@page
+@model FormSepeti.Web.Pages.Dashboard.IndexModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Dashboard";
+}
+<div class="row">
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Hoşgeldin, @Model.UserName</h3>
+            <div>
+                @if (Model.IsGoogleConnected) {
+                    <span class="badge bg-success">Google Sheets: Bağlı</span>
+                } else {
+                    <a class="btn btn-danger" asp-page="/Sheets/Connect">Google'a Bağlan</a>
+                }
+            </div>
+        </div>
+
+        <h5>Aktif Paketlerim</h5>
+        <div class="list-group mb-4">
+            @* Placeholder; servis ile doldurulacak *@
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="fw-bold">📦 Emlak Paketi</div>
+                    <div class="text-muted">Son Kullanma: 15.02.2025</div>
+                </div>
+                <div>
+                    <a class="btn btn-outline-primary btn-sm" asp-page="/Form/Index" asp-route-groupId="1">Formları Gör</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <aside class="col-lg-3">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="card-title">Hızlı Erişim</h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" asp-page="/Form/Index">Formlarım</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Package/Index">Paketlerim</a></li>
+                </ul>
+            </div>
+        </div>
+    </aside>
+</div>

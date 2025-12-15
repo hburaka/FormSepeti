@@ -1,0 +1,22 @@
+﻿
+@* navbar partial for Razor Pages *@
+@{
+    var isAuth = User?.Identity?.IsAuthenticated ?? false;
+    var name = User?.Identity?.Name ?? "Hesap";
+}
+<ul class="navbar-nav">
+    @if (isAuth)
+    {
+        <li class="nav-item"><a class="nav-link" asp-page="/Dashboard/Index">Hoşgeldin, @name</a></li>
+        <li class="nav-item">
+            <form method="post" asp-page="/Account/Logout" class="d-inline">
+                <button class="btn btn-link nav-link">Çıkış</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item"><a class="nav-link" asp-page="/Account/Login">Giriş</a></li>
+        <li class="nav-item"><a class="nav-link" asp-page="/Account/Register">Kayıt</a></li>
+    }
+</ul>

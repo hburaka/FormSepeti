@@ -1,0 +1,31 @@
+﻿@page
+@model FormSepeti.Web.Pages.Form.HistoryModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Form Geçmişi";
+}
+<div class="row">
+    <div class="col-12">
+        <h3>@Model.FormTitle - Gönderim Geçmişi</h3>
+
+        <div class="list-group mt-3">
+            @foreach (var item in Model.Entries)
+            {
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Gönderim #@item.Index</strong><br />
+                            <small class="text-muted">Tarih: @item.Date</small>
+                        </div>
+                        <div class="text-end">
+                            <div>Satır: @item.Row</div>
+                            <div class="text-success">Durum: @item.Status</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <a class="btn btn-link mt-3" asp-page="/Form/Index" asp-route-groupId="@Model.GroupId">Geri</a>
+    </div>
+</div>

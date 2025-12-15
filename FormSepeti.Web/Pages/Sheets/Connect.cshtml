@@ -1,0 +1,18 @@
+﻿@page
+@model FormSepeti.Web.Pages.Sheets.ConnectModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Google Connect";
+}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Google Hesabınızı Bağlayın</h5>
+        <form method="post">
+            <button type="submit" class="btn btn-outline-primary">Google ile Bağlan</button>
+        </form>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mt-3">@Model.ErrorMessage</div>
+        }
+    </div>
+</div>

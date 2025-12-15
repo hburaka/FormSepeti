@@ -1,0 +1,26 @@
+﻿@page
+@model FormSepeti.Web.Pages.Account.ProfileModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Profil";
+}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <h3>Profil Ayarları</h3>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Email</dt>
+                    <dd class="col-sm-9">@Model.Email ?? "-"</dd>
+
+                    <dt class="col-sm-3">Telefon</dt>
+                    <dd class="col-sm-9">@Model.Phone ?? "-"</dd>
+
+                    <dt class="col-sm-3">Kayıt Tarihi</dt>
+                    <dd class="col-sm-9">@Model.CreatedDate</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,20 @@
+﻿@page
+@model FormSepeti.Web.Pages.Sheets.OAuthCallbackModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Google OAuth Sonucu";
+}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Google Bağlantı Sonucu</h5>
+        @if (Model.Success)
+        {
+            <div class="alert alert-success">Google hesabı başarıyla bağlandı.</div>
+            <a class="btn btn-primary" asp-page="/Dashboard/Index">Dashboard'a Dön</a>
+        }
+        else
+        {
+            <div class="alert alert-danger">Bağlantı sırasında hata oluştu: @Model.ErrorMessage</div>
+        }
+    </div>
+</div>

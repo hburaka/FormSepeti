@@ -1,8 +1,5 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace FormSepeti.Web.Pages
 {
@@ -10,6 +7,7 @@ namespace FormSepeti.Web.Pages
     {
         public bool IsAuthenticated { get; private set; }
         public string UserName { get; private set; } = "";
+        public string SpreadsheetUrl { get; set; } = ""; // <-- Initialized here
 
         public void OnGet()
         {
@@ -18,12 +16,9 @@ namespace FormSepeti.Web.Pages
             {
                 UserName = User.FindFirst(ClaimTypes.Name)?.Value ?? User.Identity?.Name ?? "";
             }
-        }
 
-        public async Task<IActionResult> OnPostLogoutAsync()
-        {
-            await HttpContext.SignOutAsync("Cookie");
-            return RedirectToPage();
+            // Example assignment, replace with your logic
+            SpreadsheetUrl = "https://docs.google.com/spreadsheets/...";
         }
     }
 }
