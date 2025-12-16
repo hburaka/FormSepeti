@@ -1,0 +1,12 @@
+﻿@page
+@model FormSepeti.Web.Pages.GoogleAuth.CallbackModel
+@{
+  Layout = "/Pages/Shared/_Layout.cshtml";
+}
+<div class="container py-4">
+  <h4>Google Bağlantı Sonucu</h4>
+  <div class="alert @(Model.Message.Contains("başarı") ? "alert-success" : "alert-danger")">
+    @Model.Message
+  </div>
+  <a asp-page="/Dashboard/Index" class="btn btn-primary">Dashboard'a Dön</a>
+</div>

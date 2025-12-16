@@ -44,23 +44,26 @@ namespace FormSepeti.Services.Implementations
             _encryptionService = encryptionService;
         }
 
-        public Task<string> GetAuthorizationUrl(int userId)  // async'i kaldır
+        public Task<string> GetAuthorizationUrl(int userId)
         {
-            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-            {
-                ClientSecrets = new ClientSecrets
-                {
-                    ClientId = _clientId,
-                    ClientSecret = _clientSecret
-                },
-                Scopes = Scopes
-            });
+            var clientId = _clientId;
+            var redirect = _redirectUri; // from configuration
+            var scopes = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 
-            var authRequest = flow.CreateAuthorizationCodeRequest(_redirectUri);
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(redirect))
+                return Task.FromResult(string.Empty);
 
-            var authUrl = authRequest.Build();
+            var url =
+                "https://accounts.google.com/o/oauth2/v2/auth" +
+                "?response_type=code" +
+                "&access_type=offline" +
+                "&prompt=consent" +
+                "&client_id=" + Uri.EscapeDataString(clientId) +
+                "&redirect_uri=" + Uri.EscapeDataString(redirect) +
+                "&scope=" + Uri.EscapeDataString(scopes) +
+                "&state=" + Uri.EscapeDataString(userId.ToString()); // <- add state
 
-            return Task.FromResult(authUrl.ToString());
+            return Task.FromResult(url);
         }
 
         public async Task<bool> HandleOAuthCallback(int userId, string code)

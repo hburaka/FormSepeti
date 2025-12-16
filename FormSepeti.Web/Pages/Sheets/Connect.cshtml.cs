@@ -26,7 +26,7 @@ namespace FormSepeti.Web.Pages.Sheets
             var authUrl = await _googleSheetsService.GetAuthorizationUrl(userId);
             if (string.IsNullOrEmpty(authUrl)) { ErrorMessage = "Yetkilendirme URL'si oluþturulamadý."; return Page(); }
 
-            return Redirect(authUrl);
+            return Redirect(authUrl); // redirect user to Google
         }
     }
 }
