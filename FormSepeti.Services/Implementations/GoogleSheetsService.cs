@@ -6,6 +6,7 @@ using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,7 @@ namespace FormSepeti.Services.Implementations
         private readonly IUserRepository _userRepository;
         private readonly IUserGoogleSheetsRepository _sheetsRepository;
         private readonly IEncryptionService _encryptionService;
+        private readonly ILogger<GoogleSheetsService> _logger; // ✅ EKLENDI
 
         private static readonly string[] Scopes = {
             SheetsService.Scope.Spreadsheets,
@@ -34,7 +36,8 @@ namespace FormSepeti.Services.Implementations
             IConfiguration configuration,
             IUserRepository userRepository,
             IUserGoogleSheetsRepository sheetsRepository,
-            IEncryptionService encryptionService)
+            IEncryptionService encryptionService,
+            ILogger<GoogleSheetsService> logger) // ✅ EKLENDI
         {
             _clientId = configuration["Google:ClientId"];
             _clientSecret = configuration["Google:ClientSecret"];
@@ -42,16 +45,20 @@ namespace FormSepeti.Services.Implementations
             _userRepository = userRepository;
             _sheetsRepository = sheetsRepository;
             _encryptionService = encryptionService;
+            _logger = logger; // ✅ EKLENDI
         }
 
         public Task<string> GetAuthorizationUrl(int userId)
         {
             var clientId = _clientId;
-            var redirect = _redirectUri; // from configuration
+            var redirect = _redirectUri;
             var scopes = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 
             if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(redirect))
+            {
+                _logger.LogWarning("GetAuthorizationUrl: ClientId or RedirectUri is empty");
                 return Task.FromResult(string.Empty);
+            }
 
             var url =
                 "https://accounts.google.com/o/oauth2/v2/auth" +
@@ -61,8 +68,9 @@ namespace FormSepeti.Services.Implementations
                 "&client_id=" + Uri.EscapeDataString(clientId) +
                 "&redirect_uri=" + Uri.EscapeDataString(redirect) +
                 "&scope=" + Uri.EscapeDataString(scopes) +
-                "&state=" + Uri.EscapeDataString(userId.ToString()); // <- add state
+                "&state=" + Uri.EscapeDataString(userId.ToString());
 
+            _logger.LogInformation($"GetAuthorizationUrl: Generated for UserId={userId}");
             return Task.FromResult(url);
         }
 
@@ -70,6 +78,8 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"HandleOAuthCallback: Starting for UserId={userId}");
+
                 var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
                 {
                     ClientSecrets = new ClientSecrets
@@ -88,17 +98,23 @@ namespace FormSepeti.Services.Implementations
                 );
 
                 var user = await _userRepository.GetByIdAsync(userId);
-                if (user == null) return false;
+                if (user == null)
+                {
+                    _logger.LogError($"HandleOAuthCallback: User not found UserId={userId}");
+                    return false;
+                }
 
                 user.GoogleAccessToken = _encryptionService.Encrypt(tokenResponse.AccessToken);
                 user.GoogleRefreshToken = _encryptionService.Encrypt(tokenResponse.RefreshToken);
                 user.GoogleTokenExpiry = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresInSeconds ?? 3600);
 
                 await _userRepository.UpdateAsync(user);
+                _logger.LogInformation($"HandleOAuthCallback: Success for UserId={userId}");
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"HandleOAuthCallback failed for UserId={userId}");
                 return false;
             }
         }
@@ -107,14 +123,21 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"CreateSpreadsheetForUserGroup: Starting UserId={userId}, GroupId={groupId}");
+
                 var existingSheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, groupId);
                 if (existingSheet != null)
                 {
+                    _logger.LogInformation($"CreateSpreadsheetForUserGroup: Already exists, returning URL");
                     return existingSheet.SpreadsheetUrl;
                 }
 
                 var service = await GetSheetsService(userId);
-                if (service == null) return null;
+                if (service == null)
+                {
+                    _logger.LogError($"CreateSpreadsheetForUserGroup: SheetsService is null");
+                    return null;
+                }
 
                 var user = await _userRepository.GetByIdAsync(userId);
                 var spreadsheetName = $"{user.Email} - {groupName} Formları - {DateTime.Now:yyyy-MM-dd}";
@@ -158,31 +181,55 @@ namespace FormSepeti.Services.Implementations
 
                 await _sheetsRepository.CreateAsync(userGoogleSheet);
 
+                _logger.LogInformation($"CreateSpreadsheetForUserGroup: Success SpreadsheetId={createdSpreadsheet.SpreadsheetId}");
                 return createdSpreadsheet.SpreadsheetUrl;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"CreateSpreadsheetForUserGroup failed for UserId={userId}, GroupId={groupId}");
                 return null;
             }
         }
 
         public async Task<bool> CreateSheetTabForForm(int userId, int groupId, string formName, List<string> headers)
         {
+            Console.WriteLine($"===== CreateSheetTabForForm BAŞLADI: UserId={userId}, GroupId={groupId}, FormName={formName}");
+            
             try
             {
+                _logger.LogInformation($"CreateSheetTabForForm: UserId={userId}, GroupId={groupId}, FormName={formName}, Headers={string.Join(",", headers)}");
+
                 var userSheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, groupId);
-                if (userSheet == null) return false;
+                if (userSheet == null)
+                {
+                    Console.WriteLine("===== HATA: UserSheet bulunamadı!");
+                    _logger.LogError($"CreateSheetTabForForm: UserSheet not found");
+                    return false;
+                }
+
+                Console.WriteLine($"===== UserSheet bulundu: SpreadsheetId={userSheet.SpreadsheetId}");
 
                 var service = await GetSheetsService(userId);
-                if (service == null) return false;
+                if (service == null)
+                {
+                    Console.WriteLine("===== HATA: SheetsService null!");
+                    _logger.LogError($"CreateSheetTabForForm: SheetsService is null");
+                    return false;
+                }
+
+                Console.WriteLine("===== SheetsService başarıyla alındı");
 
                 var spreadsheet = await service.Spreadsheets.Get(userSheet.SpreadsheetId).ExecuteAsync();
                 var existingSheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == formName);
 
                 if (existingSheet != null)
                 {
+                    Console.WriteLine($"===== Tab zaten var, header güncelleniyor");
+                    _logger.LogInformation($"CreateSheetTabForForm: Tab already exists, updating headers");
                     return await UpdateSheetHeaders(service, userSheet.SpreadsheetId, formName, headers);
                 }
+
+                Console.WriteLine("===== Yeni tab oluşturuluyor...");
 
                 var addSheetRequest = new AddSheetRequest
                 {
@@ -193,7 +240,7 @@ namespace FormSepeti.Services.Implementations
                         {
                             FrozenRowCount = 1,
                             RowCount = 1000,
-                            ColumnCount = headers.Count
+                            ColumnCount = headers.Count + 1
                         }
                     }
                 };
@@ -207,12 +254,20 @@ namespace FormSepeti.Services.Implementations
                 };
 
                 await service.Spreadsheets.BatchUpdate(batchUpdateRequest, userSheet.SpreadsheetId).ExecuteAsync();
+                
+                Console.WriteLine("===== Tab oluşturuldu, header'lar yazılıyor...");
+                
                 await WriteHeadersToSheet(service, userSheet.SpreadsheetId, formName, headers);
 
+                Console.WriteLine("===== BAŞARILI: CreateSheetTabForForm tamamlandı");
+                _logger.LogInformation($"CreateSheetTabForForm: Success");
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"===== EXCEPTION: {ex.Message}");
+                Console.WriteLine($"===== StackTrace: {ex.StackTrace}");
+                _logger.LogError(ex, $"CreateSheetTabForForm failed for UserId={userId}, GroupId={groupId}, FormName={formName}");
                 return false;
             }
         }
@@ -221,11 +276,21 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"AppendFormDataToSheet: UserId={userId}, GroupId={groupId}, FormName={formName}");
+
                 var userSheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, groupId);
-                if (userSheet == null) return -1;
+                if (userSheet == null)
+                {
+                    _logger.LogError($"AppendFormDataToSheet: UserSheet not found for UserId={userId}, GroupId={groupId}");
+                    return -1;
+                }
 
                 var service = await GetSheetsService(userId);
-                if (service == null) return -1;
+                if (service == null)
+                {
+                    _logger.LogError($"AppendFormDataToSheet: SheetsService is null for UserId={userId}");
+                    return -1;
+                }
 
                 var range = $"{formName}!A1:ZZ1";
                 var headerRequest = service.Spreadsheets.Values.Get(userSheet.SpreadsheetId, range);
@@ -233,10 +298,13 @@ namespace FormSepeti.Services.Implementations
 
                 if (headerResponse.Values == null || headerResponse.Values.Count == 0)
                 {
+                    _logger.LogError($"AppendFormDataToSheet: No headers found in sheet '{formName}' for SpreadsheetId={userSheet.SpreadsheetId}");
                     return -1;
                 }
 
                 var headers = headerResponse.Values[0].Select(h => h.ToString()).ToList();
+                _logger.LogInformation($"AppendFormDataToSheet: Found headers: {string.Join(",", headers)}");
+
                 var rowData = new List<object>();
 
                 foreach (var header in headers)
@@ -262,10 +330,12 @@ namespace FormSepeti.Services.Implementations
                 userSheet.LastUpdatedDate = DateTime.UtcNow;
                 await _sheetsRepository.UpdateAsync(userSheet);
 
+                _logger.LogInformation($"AppendFormDataToSheet: Success, RowNumber={rowNumber}");
                 return rowNumber;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"AppendFormDataToSheet failed for UserId={userId}, GroupId={groupId}, FormName={formName}");
                 return -1;
             }
         }
@@ -274,8 +344,14 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"RefreshAccessToken: Starting for UserId={userId}");
+
                 var user = await _userRepository.GetByIdAsync(userId);
-                if (user == null || string.IsNullOrEmpty(user.GoogleRefreshToken)) return false;
+                if (user == null || string.IsNullOrEmpty(user.GoogleRefreshToken))
+                {
+                    _logger.LogError($"RefreshAccessToken: User or RefreshToken not found");
+                    return false;
+                }
 
                 var refreshToken = _encryptionService.Decrypt(user.GoogleRefreshToken);
 
@@ -299,10 +375,13 @@ namespace FormSepeti.Services.Implementations
                 user.GoogleTokenExpiry = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresInSeconds ?? 3600);
 
                 await _userRepository.UpdateAsync(user);
+
+                _logger.LogInformation($"RefreshAccessToken: Success for UserId={userId}");
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"RefreshAccessToken failed for UserId={userId}");
                 return false;
             }
         }
@@ -315,12 +394,21 @@ namespace FormSepeti.Services.Implementations
         private async Task<SheetsService> GetSheetsService(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null || string.IsNullOrEmpty(user.GoogleAccessToken)) return null;
+            if (user == null || string.IsNullOrEmpty(user.GoogleAccessToken))
+            {
+                _logger.LogError($"GetSheetsService: User or AccessToken not found for UserId={userId}");
+                return null;
+            }
 
             if (user.GoogleTokenExpiry <= DateTime.UtcNow)
             {
+                _logger.LogInformation($"GetSheetsService: Token expired, refreshing for UserId={userId}");
                 var refreshed = await RefreshAccessToken(userId);
-                if (!refreshed) return null;
+                if (!refreshed)
+                {
+                    _logger.LogError($"GetSheetsService: Token refresh failed for UserId={userId}");
+                    return null;
+                }
                 user = await _userRepository.GetByIdAsync(userId);
             }
 
@@ -355,6 +443,8 @@ namespace FormSepeti.Services.Implementations
         {
             var allHeaders = new List<object> { "Gönderim Tarihi" };
             allHeaders.AddRange(headers.Cast<object>());
+
+            _logger.LogInformation($"WriteHeadersToSheet: Writing headers to '{sheetName}': {string.Join(",", allHeaders)}");
 
             var values = new List<IList<object>> { allHeaders };
             var valueRange = new ValueRange { Values = values };

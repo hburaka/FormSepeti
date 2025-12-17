@@ -24,15 +24,15 @@ builder.Services.AddAuthentication("Cookie")
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddDistributedMemoryCache(); // Session için gerekli
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // 30 dakika timeout
     options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.IsEssential = true; // GDPR uyumlu
+    options.Cookie.Name = ".FormSepeti.Session"; // Özel cookie adı
 });
 
-builder.Services.AddDistributedMemoryCache();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -101,10 +101,10 @@ app.UseRouting();
 
 app.UseCors("AllowAll");
 
-app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSession(); // <-- BURASI ÖNEMLİ
 
 app.MapControllerRoute(
     name: "default",
