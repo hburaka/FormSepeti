@@ -35,7 +35,7 @@ namespace FormSepeti.Web.Pages.Account
         {
             if (string.IsNullOrWhiteSpace(EmailOrPhone) || string.IsNullOrWhiteSpace(Password))
             {
-                Error = "Email/Telefon ve þifre gereklidir.";
+                Error = "Email/Telefon ve Þifre gereklidir.";
                 ModelState.AddModelError(string.Empty, Error);
                 return Page();
             }
@@ -108,7 +108,9 @@ namespace FormSepeti.Web.Pages.Account
             var principal = new ClaimsPrincipal(identity);
 
             await HttpContext.SignInAsync("Cookie", principal);
-            return RedirectToPage("/Index");
+
+            _logger.LogInformation("User {UserId} logged in successfully, redirecting to Dashboard", user.UserId);
+            return RedirectToPage("/Dashboard/Index");
         }
     }
 }

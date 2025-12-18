@@ -11,5 +11,6 @@ namespace FormSepeti.Services.Interfaces
         Task<Form> GetFormByIdAsync(int formId);
         Task<List<FormSubmission>> GetSubmissionsByFormIdAsync(int userId, int formId);
         Task<List<FormSubmission>> GetAllSubmissionsByUserIdAsync(int userId);
+        Task<int> GetFormGroupIdAsync(int formId);
     }
 }

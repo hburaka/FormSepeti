@@ -2,50 +2,193 @@
 @model FormSepeti.Web.Pages.Form.ViewModel
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Form Detay";
+    ViewData["Title"] = Model.FormTitle;
 }
 
-<div class="row">
-    <div class="col-12 mb-3">
-        <h3>📄 @Model.FormTitle</h3>
-        <div class="mb-2">
-            <a class="btn btn-link" asp-page="/Form/History" asp-route-id="@Model.FormId">Geçmiş Gönderimler</a>
-            @if (!string.IsNullOrEmpty(Model.SpreadsheetUrl))
-            {
-                <a class="btn btn-primary" href="@Model.SpreadsheetUrl" target="_blank">Google Sheets'i Aç</a>
-            }
+<div class="row g-4 fade-in-up">
+    <!-- Header Section -->
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2 class="mb-2">
+                    <i class="fas fa-file-alt text-primary me-2"></i>
+                    @Model.FormTitle
+                </h2>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Form ID: <span class="badge bg-secondary">@Model.FormId</span>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary" asp-page="/Form/History" asp-route-id="@Model.FormId">
+                    <i class="fas fa-history me-2"></i>Gönderim Geçmişi
+                </a>
+                @if (!string.IsNullOrEmpty(Model.SpreadsheetUrl))
+                {
+                    <a class="btn btn-success" href="@Model.SpreadsheetUrl" target="_blank">
+                        <i class="fab fa-google me-2"></i>Google Sheets'i Aç
+                    </a>
+                }
+            </div>
         </div>
     </div>
 
+    <!-- Form Container -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                @* ✅ Generic webhook için iframe (userId/formId/groupId query params ile) *@
-                <div class="ratio ratio-16x9">
+        <div class="card border-0">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit me-2 text-primary"></i>Form Önizleme
+                </h5>
+                <span class="badge bg-success">
+                    <i class="fas fa-check-circle me-1"></i>Aktif
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <!-- JotForm iFrame -->
+                <div class="form-iframe-container">
                     <iframe 
                         id="JotFormIFrame"
                         src="@($"https://form.jotform.com/{Model.JotFormId}?userId={Model.UserId}&formId={Model.FormId}&groupId={Model.GroupId}")"
                         title="@Model.FormTitle"
-                        style="border:0;min-width:100%;max-width:100%;height:100%;"
+                        class="jotform-iframe"
                         allow="geolocation; microphone; camera; fullscreen; payment"
                         scrolling="yes">
                     </iframe>
                 </div>
+            </div>
+            <div class="card-footer bg-transparent border-top">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <small class="text-muted">
+                            <i class="fas fa-link me-2"></i>
+                            <strong>Webhook URL:</strong>
+                            <code class="ms-2 p-2 rounded" style="background: rgba(0,0,0,0.2);">
+                                @Model.WebhookUrl
+                            </code>
+                        </small>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-sm btn-outline-primary" onclick="copyWebhookUrl()">
+                            <i class="fas fa-copy me-1"></i>Kopyala
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <p class="small text-muted mt-2">
-                    Webhook URL: <code>@Model.WebhookUrl</code>
-                </p>
+    <!-- Info Cards -->
+    <div class="col-md-4">
+        <div class="card border-0 info-card">
+            <div class="card-body text-center">
+                <div class="info-icon mb-3">
+                    <i class="fas fa-users fa-2x text-primary"></i>
+                </div>
+                <h6 class="text-muted mb-2">Toplam Gönderim</h6>
+                <h3 class="mb-0">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 info-card">
+            <div class="card-body text-center">
+                <div class="info-icon mb-3">
+                    <i class="fas fa-calendar-check fa-2x text-success"></i>
+                </div>
+                <h6 class="text-muted mb-2">Bu Ay</h6>
+                <h3 class="mb-0">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 info-card">
+            <div class="card-body text-center">
+                <div class="info-icon mb-3">
+                    <i class="fas fa-clock fa-2x text-info"></i>
+                </div>
+                <h6 class="text-muted mb-2">Son Gönderim</h6>
+                <h3 class="mb-0">-</h3>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .form-iframe-container {
+        position: relative;
+        width: 100%;
+        padding-top: 75%; /* 4:3 Aspect Ratio */
+        border-radius: 0 0 16px 16px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .jotform-iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    .info-card {
+        transition: all 0.3s ease;
+    }
+
+    .info-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .info-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 12px;
+    }
+
+    code {
+        font-size: 0.85rem;
+        word-break: break-all;
+    }
+</style>
+
 <script>
-    // ✅ JotForm iframe auto-resize & submission tracking
+    // JotForm iframe auto-resize & submission tracking
     window.addEventListener('message', function(event) {
         if (event.data && event.data.action === 'submission-completed') {
             console.log('✅ Form submitted successfully!');
-            // İsteğe bağlı: başarı mesajı göster veya redirect
+            
+            // Success notification
+            showNotification('Form başarıyla gönderildi! ✅', 'success');
         }
     });
+
+    // Copy webhook URL
+    function copyWebhookUrl() {
+        const url = '@Model.WebhookUrl';
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('Webhook URL kopyalandı! 📋', 'info');
+        });
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>${message}
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
 </script>

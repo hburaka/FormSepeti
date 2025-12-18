@@ -1,7 +1,7 @@
-using FormSepeti.Services.Implementations;
 using FormSepeti.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration; // ? EKLE
 using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Claims;
@@ -13,22 +13,24 @@ namespace FormSepeti.Web.Pages.Form
     {
         private readonly IFormService _formService;
         private readonly IGoogleSheetsService _googleSheetsService;
+        private readonly IConfiguration _configuration; // ? EKLE
         private readonly ILogger<ViewModel> _logger;
 
         public ViewModel(
             IFormService formService, 
             IGoogleSheetsService googleSheetsService,
+            IConfiguration configuration, // ? EKLE
             ILogger<ViewModel> logger)
         {
             _formService = formService;
             _googleSheetsService = googleSheetsService;
+            _configuration = configuration; // ? EKLE
             _logger = logger;
         }
 
         [BindProperty(SupportsGet = true)] public int FormId { get; set; }
         [BindProperty(SupportsGet = true)] public int? GroupId { get; set; }
         
-        // ? YENÝ PROPERTY'LER
         public int UserId { get; set; }
         public string JotFormId { get; set; }
         
@@ -50,21 +52,12 @@ namespace FormSepeti.Web.Pages.Form
         {
             FormId = id;
 
-            // ? UserId'yi al
             UserId = GetCurrentUserId();
             if (UserId == 0)
             {
                 _logger.LogWarning("User not authenticated, redirecting to login");
                 return RedirectToPage("/Account/Login");
             }
-
-            // 1. URL'den groupId gelmiþ mi kontrol et
-            // 2. Yoksa session'dan al
-            // 3. O da yoksa varsayýlan 1 kullan
-            var sessionGroupId = HttpContext.Session.GetInt32("ActiveGroupId");
-            GroupId = groupId ?? sessionGroupId ?? 1;
-
-            _logger.LogInformation($"FormId={FormId}, URL GroupId={groupId}, Session GroupId={sessionGroupId}, Final GroupId={GroupId}");
 
             var form = await _formService.GetFormByIdAsync(id);
             if (form == null)
@@ -74,15 +67,34 @@ namespace FormSepeti.Web.Pages.Form
             }
 
             FormTitle = form.FormName;
-            JotFormId = form.JotFormId; // ? JotFormId'yi set et
+            JotFormId = form.JotFormId;
 
-            var actualGroupId = GroupId.Value;
-            
-            // ? Generic webhook URL (artýk userId/formId/groupId path'te yok)
-            var secret = "9oq8r838ihaq"; // TODO: appsettings'ten oku
+            // ? GroupId'yi belirle
+            int actualGroupId;
+
+            if (groupId.HasValue)
+            {
+                actualGroupId = groupId.Value;
+                _logger.LogInformation($"GroupId from URL parameter: {actualGroupId}");
+            }
+            else
+            {
+                actualGroupId = await _formService.GetFormGroupIdAsync(FormId);
+                _logger.LogInformation($"GroupId from FormGroupMapping: {actualGroupId} for FormId={FormId}");
+            }
+
+            GroupId = actualGroupId;
+
+            // ? Secret'ý appsettings.json'dan al
+            var secret = _configuration["JotForm:WebhookSecret"];
+            if (string.IsNullOrEmpty(secret))
+            {
+                _logger.LogError("JotForm:WebhookSecret is not configured in appsettings.json!");
+                secret = "default-secret-change-me"; // Fallback (production'da olmamalý)
+            }
+
             WebhookUrl = $"{Request.Scheme}://{Request.Host}/api/webhook/jotform?secret={secret}";
 
-            // Google Sheet URL'sini al
             try
             {
                 var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(UserId, actualGroupId);
@@ -98,14 +110,13 @@ namespace FormSepeti.Web.Pages.Form
                 _logger.LogError(ex, $"Error getting Google Sheet for UserId={UserId}, GroupId={actualGroupId}");
             }
 
-            // JotForm iframe src oluþtur (hidden field parametreleri ile)
             if (!string.IsNullOrWhiteSpace(JotFormId))
             {
                 JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={actualGroupId}";
                 JotFormBaseUrl = "https://form.jotform.com";
                 JotFormEmbedHandlerUrl = string.Empty;
                 
-                _logger.LogInformation($"JotForm iframe URL: {JotFormIFrameSrc}");
+                _logger.LogInformation($"? JotForm iframe URL: {JotFormIFrameSrc}");
             }
             else
             {

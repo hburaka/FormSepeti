@@ -4,43 +4,246 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Dashboard";
 }
-<div class="row">
-    <div class="col-lg-9">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3>Hoşgeldin, @Model.UserName</h3>
+
+<div class="row g-4 fade-in-up">
+    <!-- Welcome Header -->
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                @if (Model.IsGoogleConnected) {
-                    <span class="badge bg-success">Google Sheets: Bağlı</span>
-                } else {
-                    <a class="btn btn-danger" asp-page="/Sheets/Connect">Google'a Bağlan</a>
+                <h2 class="mb-2">
+                    <i class="fas fa-home text-primary me-2"></i>
+                    Hoşgeldin, <span class="text-gradient">@Model.UserName</span>
+                </h2>
+                <p class="text-light-muted mb-0">
+                    <i class="fas fa-calendar me-1"></i>
+                    @DateTime.Now.ToString("dd MMMM yyyy, dddd")
+                </p>
+            </div>
+            <div>
+                @if (Model.IsGoogleConnected)
+                {
+                    <span class="badge bg-success badge-lg">
+                        <i class="fab fa-google me-2"></i>Google Sheets: Bağlı
+                    </span>
+                }
+                else
+                {
+                    <a class="btn btn-danger" asp-page="/Sheets/Connect">
+                        <i class="fab fa-google me-2"></i>Google'a Bağlan
+                    </a>
                 }
             </div>
         </div>
-
-        <h5>Aktif Paketlerim</h5>
-        <div class="list-group mb-4">
-            @* Placeholder; servis ile doldurulacak *@
-            <div class="list-group-item d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="fw-bold">📦 Emlak Paketi</div>
-                    <div class="text-muted">Son Kullanma: 15.02.2025</div>
-                </div>
-                <div>
-                    <a class="btn btn-outline-primary btn-sm" asp-page="/Form/Index" asp-route-groupId="1">Formları Gör</a>
-                </div>
-            </div>
-        </div>
-
     </div>
-    <aside class="col-lg-3">
-        <div class="card mb-3">
+
+    <!-- Stats Cards -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 stat-card stat-card-primary">
             <div class="card-body">
-                <h6 class="card-title">Hızlı Erişim</h6>
-                <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" asp-page="/Form/Index">Formlarım</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-page="/Package/Index">Paketlerim</a></li>
-                </ul>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-light-muted mb-2">Aktif Paketler</h6>
+                        <h2 class="mb-0 text-white">@Model.ActivePackageCount</h2>
+                    </div>
+                    <div class="stat-icon bg-primary">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 stat-card stat-card-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-light-muted mb-2">Toplam Gönderim</h6>
+                        <h2 class="mb-0 text-white">@Model.TotalSubmissions</h2>
+                    </div>
+                    <div class="stat-icon bg-success">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 stat-card stat-card-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-light-muted mb-2">Yakında Bitecek</h6>
+                        <h2 class="mb-0 text-white">@Model.ExpiringSoonCount</h2>
+                    </div>
+                    <div class="stat-icon bg-warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 stat-card stat-card-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-light-muted mb-2">En Yakın Bitiş</h6>
+                        <h5 class="mb-0 text-white">@Model.NextExpiryDate</h5>
+                    </div>
+                    <div class="stat-icon bg-info">
+                        <i class="fas fa-calendar-times"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Packages Section -->
+    <div class="col-lg-9">
+        <div class="card border-0">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-box-open me-2 text-primary"></i>
+                    Aktif Paketlerim
+                </h5>
+                <a class="btn btn-sm btn-outline-primary" asp-page="/Package/Index">
+                    <i class="fas fa-plus me-1"></i>Yeni Paket Ekle
+                </a>
+            </div>
+            <div class="card-body">
+                @if (Model.HasAnyPackage)
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var package in Model.ActivePackages)
+                        {
+                            <div class="list-group-item package-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="package-icon">
+                                            <i class="fas fa-box text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1 text-white">
+                                                @package.Package.PackageName
+                                                @if (package.ExpiryDate.HasValue && package.ExpiryDate.Value <= DateTime.UtcNow.AddDays(7))
+                                                {
+                                                    <span class="badge bg-warning ms-2">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Yakında Bitiyor
+                                                    </span>
+                                                }
+                                            </h6>
+                                            <p class="mb-1 text-light-muted">
+                                                <i class="fas fa-layer-group me-1"></i>
+                                                <strong>Grup:</strong> @package.FormGroup.GroupName
+                                            </p>
+                                            <p class="mb-0 text-light-secondary">
+                                                <i class="fas fa-calendar-check me-1"></i>
+                                                <strong>Satın Alındı:</strong> @package.PurchaseDate.ToString("dd.MM.yyyy")
+                                                @if (package.ExpiryDate.HasValue)
+                                                {
+                                                    <span class="mx-2">•</span>
+                                                    <i class="fas fa-calendar-times me-1"></i>
+                                                    <strong>Bitiş:</strong> @package.ExpiryDate.Value.ToString("dd.MM.yyyy")
+                                                }
+                                                else
+                                                {
+                                                    <span class="mx-2">•</span>
+                                                    <i class="fas fa-infinity me-1"></i>
+                                                    <strong>Sınırsız</strong>
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-column gap-2">
+                                        <a class="btn btn-primary btn-sm" asp-page="/Form/Index" asp-route-groupId="@package.GroupId">
+                                            <i class="fas fa-file-alt me-1"></i>Formları Gör
+                                        </a>
+                                        @* ✅ HER PAKET İÇİN AYRI SHEETS BUTONU *@
+                                        @if (!string.IsNullOrEmpty(package.FormGroup.Description))
+                                        {
+                                            <a class="btn btn-success btn-sm" href="@package.FormGroup.Description" target="_blank">
+                                                <i class="fab fa-google me-1"></i>@package.FormGroup.GroupName Sheets
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Henüz Sheet yok</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state text-center py-5">
+                        <div class="empty-icon mb-3">
+                            <i class="fas fa-box-open fa-4x text-muted"></i>
+                        </div>
+                        <h5 class="text-light-muted mb-2">Henüz Aktif Paketiniz Yok</h5>
+                        <p class="text-light-secondary mb-4">Form gruplarına erişmek için bir paket satın alın</p>
+                        <a class="btn btn-primary" asp-page="/Package/Index">
+                            <i class="fas fa-shopping-cart me-2"></i>Paketleri İncele
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Sidebar -->
+    <aside class="col-lg-3">
+        <div class="card border-0 mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2 text-warning"></i>
+                    Hızlı Erişim
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action d-flex align-items-center" asp-page="/Form/Index">
+                        <i class="fas fa-file-alt text-primary me-3"></i>
+                        <span>Formlarım</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action d-flex align-items-center" asp-page="/Package/Index">
+                        <i class="fas fa-box text-success me-3"></i>
+                        <span>Paket Satın Al</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action d-flex align-items-center" asp-page="/Sheets/Connect">
+                        <i class="fab fa-google text-info me-3"></i>
+                        <span>Google Bağlantısı</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action d-flex align-items-center" asp-page="/Account/Profile">
+                        <i class="fas fa-user-cog text-warning me-3"></i>
+                        <span>Profil Ayarları</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.IsGoogleConnected && !string.IsNullOrEmpty(Model.SpreadsheetUrl))
+        {
+            <div class="card border-0">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fab fa-google me-2 text-success"></i>
+                        Google Sheets
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-light-muted mb-3">
+                        <small>Son verilerinizi buradan görüntüleyin</small>
+                    </p>
+                    <a class="btn btn-success w-100" href="@Model.SpreadsheetUrl" target="_blank">
+                        <i class="fab fa-google me-2"></i>Sheets'i Aç
+                    </a>
+                </div>
+            </div>
+        }
     </aside>
 </div>

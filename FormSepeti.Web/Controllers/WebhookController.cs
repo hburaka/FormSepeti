@@ -41,7 +41,7 @@ namespace FormSepeti.Web.Controllers
         {
             try
             {
-                var expected = _config["JotForm:WebhookSecret"];
+                var expected = _config["JotForm:WebhookSecret"]; // ✅ ZATEN DOĞRU!
                 if (string.IsNullOrEmpty(expected) || expected != secret)
                 {
                     _logger.LogWarning($"Webhook secret mismatch");

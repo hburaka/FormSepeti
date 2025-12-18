@@ -2,17 +2,146 @@
 @model FormSepeti.Web.Pages.Sheets.ConnectModel
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Google Connect";
+    ViewData["Title"] = "Google Sheets Bağlantısı";
 }
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title">Google Hesabınızı Bağlayın</h5>
-        <form method="post">
-            <button type="submit" class="btn btn-outline-primary">Google ile Bağlan</button>
-        </form>
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="alert alert-danger mt-3">@Model.ErrorMessage</div>
-        }
+
+<div class="row g-4 fade-in-up">
+    <div class="col-12">
+        <h2 class="mb-3">
+            <i class="fab fa-google me-2 text-success"></i>
+            Google Sheets Bağlantısı
+        </h2>
     </div>
+
+    @if (Model.IsAlreadyConnected)
+    {
+        <!-- ✅ ZATEN BAĞLI -->
+        <div class="col-lg-8">
+            <div class="card border-0">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Bağlantı Aktif
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Google Sheets hesabınız başarıyla bağlandı!
+                    </div>
+                    
+                    <p class="text-light-secondary mb-3">
+                        <strong>Email:</strong> @Model.UserEmail
+                    </p>
+
+                    <div class="d-flex gap-3">
+                        <a class="btn btn-primary" asp-page="/Dashboard/Index">
+                            <i class="fas fa-home me-2"></i>Dashboard'a Dön
+                        </a>
+                        
+                        <form method="post" asp-page-handler="Disconnect" onsubmit="return confirm('Google Sheets bağlantısını kaldırmak istediğinize emin misiniz?');">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-unlink me-2"></i>Bağlantıyı Kaldır
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-shield-alt me-2 text-info"></i>
+                        Güvenlik
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-light-muted mb-0">
+                        Google hesabınıza verdiğiniz erişim, sadece Google Sheets dosyalarınızı oluşturmak ve düzenlemek için kullanılır. 
+                        Hiçbir kişisel bilginiz saklanmaz.
+                    </p>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ✅ HENÜZ BAĞLANMAMIŞ -->
+        <div class="col-lg-8">
+            <div class="card border-0">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plug me-2"></i>
+                        Google Hesabını Bağla
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            @Model.ErrorMessage
+                        </div>
+                    }
+
+                    <p class="text-light-secondary mb-4">
+                        JotForm'lardan gelen verileri otomatik olarak Google Sheets'e kaydetmek için Google hesabınızı bağlamanız gerekiyor.
+                    </p>
+
+                    <div class="bg-dark-subtle p-3 rounded mb-4">
+                        <h6 class="text-light mb-3">
+                            <i class="fas fa-list-check me-2 text-primary"></i>
+                            Bağlantı Adımları:
+                        </h6>
+                        <ol class="text-light-secondary mb-0">
+                            <li>Aşağıdaki butona tıklayın</li>
+                            <li>Google hesabınızla giriş yapın</li>
+                            <li>İzinleri onaylayın</li>
+                            <li>Otomatik olarak geri yönlendirileceksiniz</li>
+                        </ol>
+                    </div>
+
+                    <form method="post">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fab fa-google me-2"></i>
+                            Google ile Bağlan
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle me-2 text-warning"></i>
+                        Neden Gerekli?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span class="text-light-secondary">Otomatik Google Sheets oluşturma</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span class="text-light-secondary">Form verilerini anlık kaydetme</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span class="text-light-secondary">Grup bazlı dosya organizasyonu</span>
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span class="text-light-secondary">Güvenli token yönetimi</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
 </div>

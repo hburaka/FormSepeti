@@ -336,5 +336,24 @@ namespace FormSepeti.Services.Implementations
 
             return true;
         }
+
+        public async Task<bool> UpdateUserAsync(User user)
+        {
+            try
+            {
+                if (user == null)
+                {
+                    _logger.LogWarning("UpdateUserAsync: User is null");
+                    return false;
+                }
+
+                return await _userRepository.UpdateAsync(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating user: UserId={user?.UserId}");
+                return false;
+            }
+        }
     }
 }

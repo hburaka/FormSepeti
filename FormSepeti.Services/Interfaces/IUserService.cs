@@ -15,5 +15,6 @@ namespace FormSepeti.Services.Interfaces
         Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
         Task<User> GetUserByIdAsync(int userId);
         Task<bool> IsEmailExistsAsync(string email);
+        Task<bool> UpdateUserAsync(User user);
     }
 }

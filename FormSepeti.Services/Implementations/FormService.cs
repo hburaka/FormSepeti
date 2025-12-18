@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FormSepeti.Data.Entities;
 using FormSepeti.Data.Repositories.Interfaces;
@@ -60,6 +61,12 @@ namespace FormSepeti.Services.Implementations
         public async Task<List<FormSubmission>> GetAllSubmissionsByUserIdAsync(int userId)
         {
             return await _submissionRepository.GetByUserIdAsync(userId);
+        }
+
+        public async Task<int> GetFormGroupIdAsync(int formId)
+        {
+            var mapping = await _formGroupMappingRepository.GetByFormIdAsync(formId);
+            return mapping?.FirstOrDefault()?.GroupId ?? 1;
         }
     }
 }
