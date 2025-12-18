@@ -193,43 +193,70 @@ namespace FormSepeti.Services.Implementations
 
         public async Task<bool> CreateSheetTabForForm(int userId, int groupId, string formName, List<string> headers)
         {
-            Console.WriteLine($"===== CreateSheetTabForForm BAŞLADI: UserId={userId}, GroupId={groupId}, FormName={formName}");
-            
             try
             {
-                _logger.LogInformation($"CreateSheetTabForForm: UserId={userId}, GroupId={groupId}, FormName={formName}, Headers={string.Join(",", headers)}");
+                _logger.LogInformation($"CreateSheetTabForForm: UserId={userId}, GroupId={groupId}, FormName={formName}");
+                _logger.LogInformation($"Requested headers ({headers.Count}): {string.Join(", ", headers)}");
 
                 var userSheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, groupId);
                 if (userSheet == null)
                 {
-                    Console.WriteLine("===== HATA: UserSheet bulunamadı!");
                     _logger.LogError($"CreateSheetTabForForm: UserSheet not found");
                     return false;
                 }
 
-                Console.WriteLine($"===== UserSheet bulundu: SpreadsheetId={userSheet.SpreadsheetId}");
-
                 var service = await GetSheetsService(userId);
                 if (service == null)
                 {
-                    Console.WriteLine("===== HATA: SheetsService null!");
                     _logger.LogError($"CreateSheetTabForForm: SheetsService is null");
                     return false;
                 }
-
-                Console.WriteLine("===== SheetsService başarıyla alındı");
 
                 var spreadsheet = await service.Spreadsheets.Get(userSheet.SpreadsheetId).ExecuteAsync();
                 var existingSheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == formName);
 
                 if (existingSheet != null)
                 {
-                    Console.WriteLine($"===== Tab zaten var, header güncelleniyor");
-                    _logger.LogInformation($"CreateSheetTabForForm: Tab already exists, updating headers");
-                    return await UpdateSheetHeaders(service, userSheet.SpreadsheetId, formName, headers);
+                    // ✅ Tab var, header'ları merge et
+                    _logger.LogInformation($"CreateSheetTabForForm: Tab exists, merging headers");
+                    
+                    // Mevcut header'ları al
+                    var range = $"{formName}!A1:ZZ1";
+                    var headerRequest = service.Spreadsheets.Values.Get(userSheet.SpreadsheetId, range);
+                    var headerResponse = await headerRequest.ExecuteAsync();
+                    
+                    var existingHeaders = new List<string>();
+                    if (headerResponse.Values != null && headerResponse.Values.Count > 0)
+                    {
+                        existingHeaders = headerResponse.Values[0]
+                            .Skip(1) // "Gönderim Tarihi" hariç
+                            .Select(h => h.ToString())
+                            .ToList();
+                    }
+
+                    // ✅ Yeni header'ları ekle (duplicate'lar hariç)
+                    var mergedHeaders = existingHeaders.ToList();
+                    foreach (var header in headers)
+                    {
+                        if (!mergedHeaders.Contains(header, StringComparer.OrdinalIgnoreCase))
+                        {
+                            mergedHeaders.Add(header);
+                            _logger.LogInformation($"  ➕ New column: {header}");
+                        }
+                    }
+
+                    // Header'lar değiştiyse güncelle
+                    if (mergedHeaders.Count > existingHeaders.Count)
+                    {
+                        await UpdateSheetHeaders(service, userSheet.SpreadsheetId, formName, mergedHeaders);
+                        _logger.LogInformation($"  ✅ Headers updated: {mergedHeaders.Count} columns");
+                    }
+                    
+                    return true;
                 }
 
-                Console.WriteLine("===== Yeni tab oluşturuluyor...");
+                // ✅ Yeni tab oluştur
+                _logger.LogInformation("CreateSheetTabForForm: Creating new tab");
 
                 var addSheetRequest = new AddSheetRequest
                 {
@@ -240,7 +267,7 @@ namespace FormSepeti.Services.Implementations
                         {
                             FrozenRowCount = 1,
                             RowCount = 1000,
-                            ColumnCount = headers.Count + 1
+                            ColumnCount = headers.Count + 10 // +10 buffer for future fields
                         }
                     }
                 };
@@ -254,20 +281,14 @@ namespace FormSepeti.Services.Implementations
                 };
 
                 await service.Spreadsheets.BatchUpdate(batchUpdateRequest, userSheet.SpreadsheetId).ExecuteAsync();
-                
-                Console.WriteLine("===== Tab oluşturuldu, header'lar yazılıyor...");
-                
                 await WriteHeadersToSheet(service, userSheet.SpreadsheetId, formName, headers);
 
-                Console.WriteLine("===== BAŞARILI: CreateSheetTabForForm tamamlandı");
                 _logger.LogInformation($"CreateSheetTabForForm: Success");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"===== EXCEPTION: {ex.Message}");
-                Console.WriteLine($"===== StackTrace: {ex.StackTrace}");
-                _logger.LogError(ex, $"CreateSheetTabForForm failed for UserId={userId}, GroupId={groupId}, FormName={formName}");
+                _logger.LogError(ex, $"CreateSheetTabForForm failed");
                 return false;
             }
         }

@@ -72,9 +72,15 @@ namespace FormSepeti.Services.Implementations
                     return result;
                 }
 
+                // ✅ Form data'yı parse et (pretty ve metadata hariç)
                 var formData = ParseFormData(webhookData.rawRequest);
-                var headers = formData.Keys.ToList();
+                
+                // ✅ Header'ları otomatik al
+                var headers = formData.Keys.OrderBy(k => k).ToList();
 
+                Console.WriteLine($"🔍 Auto-detected {headers.Count} fields: {string.Join(", ", headers)}");
+
+                // ✅ Tab'ı dinamik header'larla oluştur/güncelle
                 await _googleSheetsService.CreateSheetTabForForm(
                     userId,
                     groupId,
@@ -82,6 +88,7 @@ namespace FormSepeti.Services.Implementations
                     headers
                 );
 
+                // ✅ Veriyi yaz
                 var rowNumber = await _googleSheetsService.AppendFormDataToSheet(
                     userId,
                     groupId,
@@ -165,21 +172,78 @@ namespace FormSepeti.Services.Implementations
 
             foreach (var kvp in rawRequest)
             {
-                // ✅ JotForm field ID'sini kaldır (q3_name → name)
-                var fieldName = kvp.Key;
-                
-                if (kvp.Key.StartsWith("q") && kvp.Key.Contains("_"))
-                {
-                    fieldName = kvp.Key.Split('_', 2)[1]; // "q3_name" → "name"
-                }
-
+                var key = kvp.Key;
                 var value = kvp.Value?.ToString() ?? "";
 
+                // ✅ Metadata field'larını atla
+                var metadataFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "pretty", "ip", "submissionID", "formID", "userId", "formId", "groupId",
+                    "action", "event", "documentID", "teamID", "appID", "unread", "parent",
+                    "isSilent", "fromTable", "customParams", "customTitle", "customBody",
+                    "subject", "product", "webhookURL", "username", "type", "formTitle"
+                };
+
+                if (metadataFields.Contains(key))
+                {
+                    continue;
+                }
+
+                // ✅ "rawRequest" object'ini genişlet
+                if (key.Equals("rawRequest", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (kvp.Value is JsonElement rawReqElement && rawReqElement.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var field in rawReqElement.EnumerateObject())
+                        {
+                            var fieldKey = field.Name;
+                            var fieldValue = field.Value.ValueKind == JsonValueKind.String 
+                                ? field.Value.GetString() ?? "" 
+                                : field.Value.ToString();
+
+                            // ✅ JotForm field ID'sini temizle (q7_ad → ad)
+                            if (fieldKey.StartsWith("q") && fieldKey.Contains("_"))
+                            {
+                                var parts = fieldKey.Split('_', 2);
+                                if (parts.Length == 2)
+                                {
+                                    fieldKey = parts[1];
+                                }
+                            }
+
+                            // ✅ Nested object'leri düzleştir (dateTime)
+                            if (field.Value.ValueKind == JsonValueKind.Object)
+                            {
+                                fieldValue = FlattenJsonObject(field.Value);
+                            }
+
+                            // ✅ JotForm internal field'larını atla
+                            var jotFormInternalFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                "slug", "jsExecutionTracker", "submitSource", "submitDate", "buildDate",
+                                "uploadServerUrl", "eventObserver", "event_id", "timeToSubmit",
+                                "validatedNewRequiredFieldIDs", "path", "userId", "formId", "groupId"
+                            };
+
+                            if (!jotFormInternalFields.Contains(fieldKey) && !string.IsNullOrWhiteSpace(fieldValue))
+                            {
+                                formData[fieldKey] = fieldValue;
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                // ✅ Diğer field'lar (rawRequest dışında)
                 if (kvp.Value is JsonElement element)
                 {
                     if (element.ValueKind == JsonValueKind.Object)
                     {
                         value = FlattenJsonObject(element);
+                    }
+                    else if (element.ValueKind == JsonValueKind.String)
+                    {
+                        value = element.GetString() ?? "";
                     }
                     else
                     {
@@ -187,13 +251,9 @@ namespace FormSepeti.Services.Implementations
                     }
                 }
 
-                // ✅ Sadece anlamlı field'ları ekle (userId, formId, groupId hariç)
-                if (!fieldName.Equals("userId", StringComparison.OrdinalIgnoreCase) &&
-                    !fieldName.Equals("formId", StringComparison.OrdinalIgnoreCase) &&
-                    !fieldName.Equals("groupId", StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrWhiteSpace(value))
+                if (!string.IsNullOrWhiteSpace(value))
                 {
-                    formData[fieldName] = value;
+                    formData[key] = value;
                 }
             }
 
@@ -202,6 +262,41 @@ namespace FormSepeti.Services.Implementations
 
         private string FlattenJsonObject(JsonElement element)
         {
+            // ✅ DEBUG: Element'in tüm property'lerini logla
+            Console.WriteLine($"📅 FlattenJsonObject called for element with {element.GetRawText()}");
+            
+            // ✅ DateTime field kontrolü
+            if (element.TryGetProperty("year", out var year) &&
+                element.TryGetProperty("month", out var month) &&
+                element.TryGetProperty("day", out var day))
+            {
+                Console.WriteLine($"📅 DateTime detected: year={year}, month={month}, day={day}");
+                
+                var y = year.GetString() ?? year.ToString();
+                var m = month.GetString()?.PadLeft(2, '0') ?? month.ToString().PadLeft(2, '0');
+                var d = day.GetString()?.PadLeft(2, '0') ?? day.ToString().PadLeft(2, '0');
+                
+                // Saat var mı?
+                if (element.TryGetProperty("hour", out var hour) &&
+                    element.TryGetProperty("min", out var min))
+                {
+                    var h = hour.GetString()?.PadLeft(2, '0') ?? hour.ToString().PadLeft(2, '0');
+                    var mi = min.GetString()?.PadLeft(2, '0') ?? min.ToString().PadLeft(2, '0');
+                    
+                    var formatted = $"{y}-{m}-{d} {h}:{mi}";
+                    Console.WriteLine($"📅 Formatted as: {formatted}");
+                    return formatted;
+                }
+                
+                // Sadece tarih
+                var dateFormatted = $"{y}-{m}-{d}";
+                Console.WriteLine($"📅 Formatted as: {dateFormatted}");
+                return dateFormatted;
+            }
+
+            Console.WriteLine($"⚠️ Not a DateTime field, using default join");
+
+            // ✅ Diğer object'ler
             var parts = new List<string>();
 
             foreach (var property in element.EnumerateObject())

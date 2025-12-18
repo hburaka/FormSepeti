@@ -48,43 +48,26 @@ namespace FormSepeti.Web.Controllers
                     return Forbid();
                 }
 
-                // ✅ JotForm form data olarak gönderiyor
                 var form = await Request.ReadFormAsync();
-
+                
                 _logger.LogInformation($"📩 Webhook received - Keys: {string.Join(", ", form.Keys)}");
 
-                // Form boş mu kontrol et
-                if (form.Keys.Count == 0)
-                {
-                    _logger.LogWarning("❌ Empty form data");
-                    return BadRequest(new { error = "Empty form data" });
-                }
+                // ✅ rawRequest'i parse et
+                string rawRequestJson = form.ContainsKey("rawRequest") ? form["rawRequest"].ToString() : "{}";
+                
+                _logger.LogInformation($"🔍 rawRequest: {rawRequestJson.Substring(0, Math.Min(300, rawRequestJson.Length))}");
 
-                // Tüm form verilerini logla (ilk 5 key)
-                var firstKeys = form.Keys.Take(5);
-                foreach (var key in firstKeys)
+                // ✅ JotFormService için JSON payload oluştur
+                var webhookPayload = new
                 {
-                    _logger.LogInformation($"  {key} = {form[key]}");
-                }
-
-                // Form verilerini Dictionary'e çevir
-                var formData = new Dictionary<string, object>();
-                foreach (var key in form.Keys)
-                {
-                    formData[key] = form[key].ToString();
-                }
-
-                // JSON formatına çevir (JotFormService için)
-                var rawJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    submissionID = form.ContainsKey("submissionID") ? form["submissionID"].ToString() :
-                                  form.ContainsKey("submission_id") ? form["submission_id"].ToString() :
-                                  Guid.NewGuid().ToString(),
+                    submissionID = form.ContainsKey("submissionID") ? form["submissionID"].ToString() : "",
                     formID = formId.ToString(),
-                    rawRequest = formData
-                });
+                    rawRequest = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(rawRequestJson)
+                };
 
-                _logger.LogInformation($"🚀 Processing {formData.Count} fields...");
+                var rawJson = System.Text.Json.JsonSerializer.Serialize(webhookPayload);
+
+                _logger.LogInformation($"🚀 Processing webhook...");
 
                 var result = await _jotFormService.ProcessWebhook(rawJson, userId, formId, groupId);
 
@@ -102,7 +85,7 @@ namespace FormSepeti.Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 EXCEPTION in webhook");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
             }
         }
 
