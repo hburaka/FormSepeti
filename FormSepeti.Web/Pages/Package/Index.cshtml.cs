@@ -6,7 +6,7 @@ using FormSepeti.Data.Repositories.Interfaces;
 
 namespace FormSepeti.Web.Pages.Package
 {
-    public class IndexModel : PageModel
+    public partial class IndexModel : PageModel
     {
         private readonly IFormGroupRepository _groupRepo;
         private readonly IPackageService _packageService;
@@ -17,10 +17,15 @@ namespace FormSepeti.Web.Pages.Package
             _packageService = packageService;
         }
 
-        // View model used by the Razor page
-        public record PackageView(int PackageId, string Name, string Description, decimal Price, int GroupId, string GroupName);
+        public class PackageView
+        {
+            public int PackageId { get; set; }
+            public string PackageName { get; set; } // <-- Add this property
+            public decimal Price { get; set; }
+            public string Description { get; set; }
+        }
 
-        public List<PackageView> Packages { get; private set; } = new();
+        public List<PackageView> Packages { get; set; } = new List<PackageView>();
 
         public async Task OnGetAsync()
         {
@@ -36,14 +41,13 @@ namespace FormSepeti.Web.Pages.Package
                 foreach (var p in pkgs)
                 {
                     // map domain Package entity fields to PackageView; adjust names if your entity differs
-                    Packages.Add(new PackageView(
-                        p.PackageId,
-                        p.PackageName ?? string.Empty,
-                        p.Description ?? string.Empty,
-                        p.Price,
-                        g.GroupId,
-                        g.GroupName ?? string.Empty
-                    ));
+                    Packages.Add(new PackageView
+                    {
+                        PackageId = p.PackageId,
+                        PackageName = p.PackageName ?? string.Empty,
+                        Description = p.Description ?? string.Empty,
+                        Price = p.Price
+                    });
                 }
             }
         }

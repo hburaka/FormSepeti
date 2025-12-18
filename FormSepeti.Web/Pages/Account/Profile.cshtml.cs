@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -10,17 +10,17 @@ namespace FormSepeti.Web.Pages.Account
     public class ProfileModel : PageModel
     {
         private readonly IUserService _userService;
-        private readonly IFormSubmissionRepository _submissionRepository; // ? EKLE
-        private readonly IUserPackageRepository _packageRepository; // ? EKLE
+        private readonly IFormSubmissionRepository _submissionRepository; // âœ… EKLE
+        private readonly IUserPackageRepository _packageRepository; // âœ… EKLE
 
         public ProfileModel(
             IUserService userService,
-            IFormSubmissionRepository submissionRepository, // ? EKLE
-            IUserPackageRepository packageRepository) // ? EKLE
+            IFormSubmissionRepository submissionRepository, // âœ… EKLE
+            IUserPackageRepository packageRepository) // âœ… EKLE
         {
             _userService = userService;
-            _submissionRepository = submissionRepository; // ? EKLE
-            _packageRepository = packageRepository; // ? EKLE
+            _submissionRepository = submissionRepository; // âœ… EKLE
+            _packageRepository = packageRepository; // âœ… EKLE
         }
 
         public string? Email { get; private set; }
@@ -60,10 +60,10 @@ namespace FormSepeti.Web.Pages.Account
             Email = user.Email;
             Phone = user.PhoneNumber;
             CreatedDate = user.CreatedDate.ToString("dd MMMM yyyy");
-            LastLoginDate = user.LastLoginDate?.ToString("dd MMMM yyyy HH:mm") ?? "Hiç giriþ yapýlmadý";
+            LastLoginDate = user.LastLoginDate?.ToString("dd MMMM yyyy HH:mm") ?? "HiÃ§ giriÅŸ yapÄ±lmadÄ±";
             IsGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
 
-            // ? GERÇEK ÝSTATÝSTÝKLER
+            // âœ… GERÃ‡EK Ä°STATÄ°STÄ°KLER
             TotalSubmissions = await _submissionRepository.GetCountByUserIdAsync(id);
             
             var activePackages = await _packageRepository.GetActiveByUserIdAsync(id);
@@ -83,7 +83,7 @@ namespace FormSepeti.Web.Pages.Account
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
             {
-                ErrorMessage = "Kullanýcý bulunamadý.";
+                ErrorMessage = "KullanÄ±cÄ± bulunamadÄ±.";
                 return Page();
             }
 
@@ -92,12 +92,12 @@ namespace FormSepeti.Web.Pages.Account
 
             if (updated)
             {
-                TempData["Success"] = "Telefon numaranýz güncellendi!";
-                return RedirectToPage(); // ? Redirect ile TempData kullan
+                TempData["Success"] = "Telefon numaranÄ±z gÃ¼ncellendi!";
+                return RedirectToPage(); // âœ… Redirect ile TempData kullan
             }
             else
             {
-                ErrorMessage = "Telefon numarasý güncellenemedi.";
+                ErrorMessage = "Telefon numarasÄ± gÃ¼ncellenemedi.";
                 return Page();
             }
         }
