@@ -165,23 +165,34 @@ namespace FormSepeti.Services.Implementations
 
             foreach (var kvp in rawRequest)
             {
+                // ✅ JotForm field ID'sini kaldır (q3_name → name)
+                var fieldName = kvp.Key;
+                
                 if (kvp.Key.StartsWith("q") && kvp.Key.Contains("_"))
                 {
-                    var fieldName = kvp.Key.Split('_', 2)[1];
-                    var value = kvp.Value?.ToString() ?? "";
+                    fieldName = kvp.Key.Split('_', 2)[1]; // "q3_name" → "name"
+                }
 
-                    if (kvp.Value is JsonElement element)
+                var value = kvp.Value?.ToString() ?? "";
+
+                if (kvp.Value is JsonElement element)
+                {
+                    if (element.ValueKind == JsonValueKind.Object)
                     {
-                        if (element.ValueKind == JsonValueKind.Object)
-                        {
-                            value = FlattenJsonObject(element);
-                        }
-                        else
-                        {
-                            value = element.ToString();
-                        }
+                        value = FlattenJsonObject(element);
                     }
+                    else
+                    {
+                        value = element.ToString();
+                    }
+                }
 
+                // ✅ Sadece anlamlı field'ları ekle (userId, formId, groupId hariç)
+                if (!fieldName.Equals("userId", StringComparison.OrdinalIgnoreCase) &&
+                    !fieldName.Equals("formId", StringComparison.OrdinalIgnoreCase) &&
+                    !fieldName.Equals("groupId", StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(value))
+                {
                     formData[fieldName] = value;
                 }
             }

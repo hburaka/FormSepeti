@@ -5,8 +5,19 @@ using FormSepeti.Data.Repositories.Interfaces;
 using FormSepeti.Data.Repositories.Implementations;
 using FormSepeti.Services.Interfaces;
 using FormSepeti.Services.Implementations;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ✅ ngrok için host header validation'ı kapat (sadece development)
+if (builder.Environment.IsDevelopment())
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.AllowSynchronousIO = true;
+    });
+}
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
@@ -80,9 +91,35 @@ builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    
+    // ✅ Webhook endpoint'lerini antiforgery'den hariç tut
+    options.SuppressXFrameOptionsHeader = false;
+});
+
+// ✅ Controllers için ignore attribute
+builder.Services.AddControllers(options =>
+{
+    // Webhook endpoint'leri için model validation hatalarını logla
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
 });
 
 var app = builder.Build();
+
+// ✅ Forwarded Headers (ngrok için)
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
+                       Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
+// ✅ ngrok için forwarded headers middleware ekle
+if (app.Environment.IsDevelopment())
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.All
+    });
+}
 
 if (!app.Environment.IsDevelopment())
 {

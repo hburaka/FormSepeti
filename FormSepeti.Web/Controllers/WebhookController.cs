@@ -36,61 +36,73 @@ namespace FormSepeti.Web.Controllers
         }
 
         [HttpPost("jotform/{userId}/{formId}/{groupId}")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> JotFormWebhook(int userId, int formId, int groupId, [FromQuery] string secret = "")
         {
             try
             {
-                // Security: verify secret
                 var expected = _config["JotForm:WebhookSecret"];
                 if (string.IsNullOrEmpty(expected) || expected != secret)
                 {
-                    _logger.LogWarning("Webhook secret mismatch");
+                    _logger.LogWarning($"Webhook secret mismatch");
                     return Forbid();
                 }
 
-                string rawJson;
-                using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
+                // ✅ JotForm form data olarak gönderiyor
+                var form = await Request.ReadFormAsync();
+
+                _logger.LogInformation($"📩 Webhook received - Keys: {string.Join(", ", form.Keys)}");
+
+                // Form boş mu kontrol et
+                if (form.Keys.Count == 0)
                 {
-                    rawJson = await reader.ReadToEndAsync();
+                    _logger.LogWarning("❌ Empty form data");
+                    return BadRequest(new { error = "Empty form data" });
                 }
 
-                if (string.IsNullOrEmpty(rawJson))
+                // Tüm form verilerini logla (ilk 5 key)
+                var firstKeys = form.Keys.Take(5);
+                foreach (var key in firstKeys)
                 {
-                    _logger.LogWarning("Empty webhook payload received");
-                    return BadRequest(new { error = "Empty payload" });
+                    _logger.LogInformation($"  {key} = {form[key]}");
                 }
 
-                _logger.LogInformation($"JotForm webhook received for User:{userId}, Form:{formId}, Group:{groupId}");
+                // Form verilerini Dictionary'e çevir
+                var formData = new Dictionary<string, object>();
+                foreach (var key in form.Keys)
+                {
+                    formData[key] = form[key].ToString();
+                }
+
+                // JSON formatına çevir (JotFormService için)
+                var rawJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    submissionID = form.ContainsKey("submissionID") ? form["submissionID"].ToString() :
+                                  form.ContainsKey("submission_id") ? form["submission_id"].ToString() :
+                                  Guid.NewGuid().ToString(),
+                    formID = formId.ToString(),
+                    rawRequest = formData
+                });
+
+                _logger.LogInformation($"🚀 Processing {formData.Count} fields...");
 
                 var result = await _jotFormService.ProcessWebhook(rawJson, userId, formId, groupId);
 
                 if (result.Success)
                 {
-                    _logger.LogInformation($"Webhook processed successfully. Submission:{result.JotFormSubmissionId}, Row:{result.GoogleSheetRowNumber}");
-
-                    return Ok(new
-                    {
-                        success = true,
-                        message = "Form data successfully saved to Google Sheets",
-                        submissionId = result.JotFormSubmissionId,
-                        rowNumber = result.GoogleSheetRowNumber
-                    });
+                    _logger.LogInformation($"✅ SUCCESS! Row:{result.GoogleSheetRowNumber}");
+                    return Ok(new { success = true, rowNumber = result.GoogleSheetRowNumber });
                 }
                 else
                 {
-                    _logger.LogError($"Webhook processing failed: {result.ErrorMessage}");
-
-                    return StatusCode(500, new
-                    {
-                        success = false,
-                        error = result.ErrorMessage
-                    });
+                    _logger.LogError($"❌ FAILED: {result.ErrorMessage}");
+                    return StatusCode(500, new { success = false, error = result.ErrorMessage });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception in JotForm webhook handler");
-                return StatusCode(500, new { error = "Internal server error" });
+                _logger.LogError(ex, "💥 EXCEPTION in webhook");
+                return StatusCode(500, new { error = ex.Message });
             }
         }
 

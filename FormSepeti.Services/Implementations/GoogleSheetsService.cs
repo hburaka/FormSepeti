@@ -277,18 +277,19 @@ namespace FormSepeti.Services.Implementations
             try
             {
                 _logger.LogInformation($"AppendFormDataToSheet: UserId={userId}, GroupId={groupId}, FormName={formName}");
+                _logger.LogInformation($"FormData keys: {string.Join(", ", formData.Keys)}");
 
                 var userSheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, groupId);
                 if (userSheet == null)
                 {
-                    _logger.LogError($"AppendFormDataToSheet: UserSheet not found for UserId={userId}, GroupId={groupId}");
+                    _logger.LogError($"AppendFormDataToSheet: UserSheet not found");
                     return -1;
                 }
 
                 var service = await GetSheetsService(userId);
                 if (service == null)
                 {
-                    _logger.LogError($"AppendFormDataToSheet: SheetsService is null for UserId={userId}");
+                    _logger.LogError($"AppendFormDataToSheet: SheetsService is null");
                     return -1;
                 }
 
@@ -298,21 +299,48 @@ namespace FormSepeti.Services.Implementations
 
                 if (headerResponse.Values == null || headerResponse.Values.Count == 0)
                 {
-                    _logger.LogError($"AppendFormDataToSheet: No headers found in sheet '{formName}' for SpreadsheetId={userSheet.SpreadsheetId}");
+                    _logger.LogError($"AppendFormDataToSheet: No headers found");
                     return -1;
                 }
 
                 var headers = headerResponse.Values[0].Select(h => h.ToString()).ToList();
-                _logger.LogInformation($"AppendFormDataToSheet: Found headers: {string.Join(",", headers)}");
+                _logger.LogInformation($"Sheet headers: {string.Join(", ", headers)}");
 
                 var rowData = new List<object>();
 
-                foreach (var header in headers)
-                {
-                    rowData.Add(formData.ContainsKey(header) ? formData[header] : "");
-                }
+                // ✅ Gönderim Tarihi (ilk kolon)
+                rowData.Add(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
-                rowData.Insert(0, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                // ✅ Diğer kolonlar (headers[1..] → skip first "Gönderim Tarihi")
+                for (int i = 1; i < headers.Count; i++)
+                {
+                    var header = headers[i];
+                    
+                    // Exact match
+                    if (formData.ContainsKey(header))
+                    {
+                        rowData.Add(formData[header]);
+                        _logger.LogInformation($"  ✅ {header} = {formData[header]}");
+                    }
+                    // Flexible match (case-insensitive)
+                    else
+                    {
+                        var matchedKey = formData.Keys.FirstOrDefault(k => 
+                            k.Equals(header, StringComparison.OrdinalIgnoreCase) ||
+                            k.EndsWith($"_{header}", StringComparison.OrdinalIgnoreCase));
+
+                        if (matchedKey != null)
+                        {
+                            rowData.Add(formData[matchedKey]);
+                            _logger.LogInformation($"  ✅ {header} matched {matchedKey} = {formData[matchedKey]}");
+                        }
+                        else
+                        {
+                            rowData.Add("");
+                            _logger.LogWarning($"  ⚠️ {header} not found in formData");
+                        }
+                    }
+                }
 
                 var valueRange = new ValueRange
                 {
@@ -335,7 +363,7 @@ namespace FormSepeti.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"AppendFormDataToSheet failed for UserId={userId}, GroupId={groupId}, FormName={formName}");
+                _logger.LogError(ex, $"AppendFormDataToSheet failed");
                 return -1;
             }
         }
