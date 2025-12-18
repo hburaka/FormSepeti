@@ -91,6 +91,7 @@ namespace FormSepeti.Web.Controllers
 
         // Alternative: read userId/formId/groupId from payload (hidden fields) if not in route
         [HttpPost("jotform")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> JotFormWebhookGeneric([FromQuery] string secret = "")
         {
             try
@@ -102,57 +103,77 @@ namespace FormSepeti.Web.Controllers
                     return Forbid();
                 }
 
-                string rawJson;
-                using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
-                    rawJson = await reader.ReadToEndAsync();
+                var form = await Request.ReadFormAsync();
+        
+                _logger.LogInformation($"📩 Generic Webhook received - Keys: {string.Join(", ", form.Keys)}");
 
-                if (string.IsNullOrEmpty(rawJson))
-                    return BadRequest(new { error = "Empty payload" });
-
-                // Parse payload to extract userId, formId, groupId from hidden fields
-                var doc = JsonDocument.Parse(rawJson);
-                var root = doc.RootElement;
-
+                // ✅ rawRequest'i parse et
+                string rawRequestJson = form.ContainsKey("rawRequest") ? form["rawRequest"].ToString() : "{}";
+        
+                // ✅ rawRequest içinden userId, formId, groupId çıkar
+                var rawRequestDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(rawRequestJson);
+        
                 int userId = 0, formId = 0, groupId = 0;
 
-                if (root.TryGetProperty("rawRequest", out var rawReq))
+                if (rawRequestDict != null)
                 {
-                    foreach (var prop in rawReq.EnumerateObject())
+                    foreach (var kvp in rawRequestDict)
                     {
-                        if (prop.Name.EndsWith("userId", StringComparison.OrdinalIgnoreCase))
-                            int.TryParse(prop.Value.GetString(), out userId);
-                        else if (prop.Name.EndsWith("formId", StringComparison.OrdinalIgnoreCase))
-                            int.TryParse(prop.Value.GetString(), out formId);
-                        else if (prop.Name.EndsWith("groupId", StringComparison.OrdinalIgnoreCase))
-                            int.TryParse(prop.Value.GetString(), out groupId);
+                        var key = kvp.Key;
+                        var value = kvp.Value?.ToString() ?? "";
+
+                        // ✅ Hidden field'lardan user/form/group ID'lerini al
+                        if (key.StartsWith("q") && key.Contains("_"))
+                        {
+                            var fieldName = key.Split('_', 2)[1];
+                    
+                            if (fieldName.Equals("userId", StringComparison.OrdinalIgnoreCase))
+                                int.TryParse(value, out userId);
+                            else if (fieldName.Equals("formId", StringComparison.OrdinalIgnoreCase))
+                                int.TryParse(value, out formId);
+                            else if (fieldName.Equals("groupId", StringComparison.OrdinalIgnoreCase))
+                                int.TryParse(value, out groupId);
+                        }
                     }
                 }
 
                 if (userId == 0 || formId == 0 || groupId == 0)
                 {
-                    _logger.LogWarning("Missing userId/formId/groupId in payload");
-                    return BadRequest(new { error = "Missing userId/formId/groupId in payload" });
+                    _logger.LogWarning($"Missing required IDs: userId={userId}, formId={formId}, groupId={groupId}");
+                    return BadRequest(new { error = "Missing userId/formId/groupId in form data" });
                 }
 
-                _logger.LogInformation($"JotForm webhook (generic) received for User:{userId}, Form:{formId}, Group:{groupId}");
+                _logger.LogInformation($"🔍 Extracted IDs: userId={userId}, formId={formId}, groupId={groupId}");
+
+                // ✅ Webhook payload oluştur
+                var webhookPayload = new
+                {
+                    submissionID = form.ContainsKey("submissionID") ? form["submissionID"].ToString() : "",
+                    formID = formId.ToString(),
+                    rawRequest = rawRequestDict
+                };
+
+                var rawJson = System.Text.Json.JsonSerializer.Serialize(webhookPayload);
+
+                _logger.LogInformation($"🚀 Processing generic webhook...");
 
                 var result = await _jotFormService.ProcessWebhook(rawJson, userId, formId, groupId);
 
                 if (result.Success)
                 {
-                    _logger.LogInformation($"Webhook processed successfully. Submission:{result.JotFormSubmissionId}, Row:{result.GoogleSheetRowNumber}");
-                    return Ok(new { success = true, submissionId = result.JotFormSubmissionId, rowNumber = result.GoogleSheetRowNumber });
+                    _logger.LogInformation($"✅ SUCCESS! Row:{result.GoogleSheetRowNumber}");
+                    return Ok(new { success = true, rowNumber = result.GoogleSheetRowNumber });
                 }
                 else
                 {
-                    _logger.LogError($"Webhook processing failed: {result.ErrorMessage}");
+                    _logger.LogError($"❌ FAILED: {result.ErrorMessage}");
                     return StatusCode(500, new { success = false, error = result.ErrorMessage });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception in JotForm generic webhook handler");
-                return StatusCode(500, new { error = "Internal server error" });
+                _logger.LogError(ex, "💥 EXCEPTION in generic webhook");
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
             }
         }
 

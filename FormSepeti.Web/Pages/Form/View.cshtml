@@ -4,6 +4,7 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Form Detay";
 }
+
 <div class="row">
     <div class="col-12 mb-3">
         <h3>📄 @Model.FormTitle</h3>
@@ -19,40 +20,17 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                @* Render embed according to what we have *@
-                @if (!string.IsNullOrEmpty(Model.JotFormEmbedHtml))
-                {
-                    @Html.Raw(Model.JotFormEmbedHtml)
-                }
-                else if (!string.IsNullOrEmpty(Model.JotFormJsUrl))
-                {
-                    <div id="jotform-container"></div>
-                    <script src="@Model.JotFormJsUrl"></script>
-                }
-                else
-                {
-                    <div class="ratio ratio-16x9">
-                        <iframe id="@Model.JotFormIFrameId"
-                                src="@Model.JotFormIFrameSrc"
-                                title="@Model.FormTitle"
-                                style="border:0;min-width:100%;max-width:100%;height:100%;"
-                                allow="geolocation; microphone; camera; fullscreen; payment"
-                                scrolling="yes"></iframe>
-                    </div>
-
-                    @* If a provider-specific embed handler is required, include it and initialise *@
-                    @if (!string.IsNullOrEmpty(Model.JotFormEmbedHandlerUrl) && !Model.JotFormEmbedHandlerUrl.Contains("form.jotform.com"))
-                    {
-                        <script src="@Model.JotFormEmbedHandlerUrl"></script>
-                        <script>
-                            try {
-                                window.jotformEmbedHandler("iframe[id='@Model.JotFormIFrameId']", "@Model.JotFormBaseUrl");
-                            } catch (e) {
-                                console && console.warn && console.warn('embed handler init failed', e);
-                            }
-                        </script>
-                    }
-                }
+                @* ✅ Generic webhook için iframe (userId/formId/groupId query params ile) *@
+                <div class="ratio ratio-16x9">
+                    <iframe 
+                        id="JotFormIFrame"
+                        src="@($"https://form.jotform.com/{Model.JotFormId}?userId={Model.UserId}&formId={Model.FormId}&groupId={Model.GroupId}")"
+                        title="@Model.FormTitle"
+                        style="border:0;min-width:100%;max-width:100%;height:100%;"
+                        allow="geolocation; microphone; camera; fullscreen; payment"
+                        scrolling="yes">
+                    </iframe>
+                </div>
 
                 <p class="small text-muted mt-2">
                     Webhook URL: <code>@Model.WebhookUrl</code>
@@ -61,3 +39,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    // ✅ JotForm iframe auto-resize & submission tracking
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.action === 'submission-completed') {
+            console.log('✅ Form submitted successfully!');
+            // İsteğe bağlı: başarı mesajı göster veya redirect
+        }
+    });
+</script>

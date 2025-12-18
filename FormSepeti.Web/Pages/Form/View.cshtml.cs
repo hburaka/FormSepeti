@@ -28,6 +28,10 @@ namespace FormSepeti.Web.Pages.Form
         [BindProperty(SupportsGet = true)] public int FormId { get; set; }
         [BindProperty(SupportsGet = true)] public int? GroupId { get; set; }
         
+        // ? YENÝ PROPERTY'LER
+        public int UserId { get; set; }
+        public string JotFormId { get; set; }
+        
         public string FormTitle { get; private set; } = "Form";
         public string WebhookUrl { get; private set; } = string.Empty;
         public string SpreadsheetUrl { get; private set; } = string.Empty;
@@ -46,31 +50,21 @@ namespace FormSepeti.Web.Pages.Form
         {
             FormId = id;
 
-            // 1. URL'den groupId gelmiþ mi kontrol et
-            // 2. Yoksa session'dan al
-            // 3. O da yoksa varsayýlan 1 kullan (veya grup seçme sayfasýna yönlendir)
-            var sessionGroupId = HttpContext.Session.GetInt32("ActiveGroupId");
-            GroupId = groupId ?? sessionGroupId ?? 1;
-
-            // Debug log
-            _logger.LogInformation($"FormId={FormId}, URL GroupId={groupId}, Session GroupId={sessionGroupId}, Final GroupId={GroupId}");
-
-            // Eðer session'da groupId yoksa ve URL'den de gelmemiþse kullanýcýyý grup seçmeye yönlendir
-            // (Ýsterseniz bu kontrolü açabilirsiniz)
-            /*
-            if (!groupId.HasValue && !sessionGroupId.HasValue)
-            {
-                TempData["Warning"] = "Lütfen önce bir grup seçin.";
-                return RedirectToPage("/Dashboard/SelectGroup");
-            }
-            */
-
-            var userId = GetCurrentUserId();
-            if (userId == 0)
+            // ? UserId'yi al
+            UserId = GetCurrentUserId();
+            if (UserId == 0)
             {
                 _logger.LogWarning("User not authenticated, redirecting to login");
                 return RedirectToPage("/Account/Login");
             }
+
+            // 1. URL'den groupId gelmiþ mi kontrol et
+            // 2. Yoksa session'dan al
+            // 3. O da yoksa varsayýlan 1 kullan
+            var sessionGroupId = HttpContext.Session.GetInt32("ActiveGroupId");
+            GroupId = groupId ?? sessionGroupId ?? 1;
+
+            _logger.LogInformation($"FormId={FormId}, URL GroupId={groupId}, Session GroupId={sessionGroupId}, Final GroupId={GroupId}");
 
             var form = await _formService.GetFormByIdAsync(id);
             if (form == null)
@@ -80,45 +74,45 @@ namespace FormSepeti.Web.Pages.Form
             }
 
             FormTitle = form.FormName;
+            JotFormId = form.JotFormId; // ? JotFormId'yi set et
 
             var actualGroupId = GroupId.Value;
-            var secret = "9oq8r838ihaq"; // appsettings'ten oku (daha güvenli)
-            WebhookUrl = $"{Request.Scheme}://{Request.Host}/api/webhook/jotform/{userId}/{FormId}/{actualGroupId}?secret={secret}";
+            
+            // ? Generic webhook URL (artýk userId/formId/groupId path'te yok)
+            var secret = "9oq8r838ihaq"; // TODO: appsettings'ten oku
+            WebhookUrl = $"{Request.Scheme}://{Request.Host}/api/webhook/jotform?secret={secret}";
 
             // Google Sheet URL'sini al
             try
             {
-                var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(userId, GroupId.Value);
+                var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(UserId, actualGroupId);
                 SpreadsheetUrl = userSheet?.SpreadsheetUrl ?? string.Empty;
                 
                 if (string.IsNullOrEmpty(SpreadsheetUrl))
                 {
-                    _logger.LogWarning($"No Google Sheet found for UserId={userId}, GroupId={GroupId}");
+                    _logger.LogWarning($"No Google Sheet found for UserId={UserId}, GroupId={actualGroupId}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting Google Sheet for UserId={userId}, GroupId={GroupId}");
+                _logger.LogError(ex, $"Error getting Google Sheet for UserId={UserId}, GroupId={actualGroupId}");
             }
 
-            // JotForm iframe src oluþtur
-            if (form.JotFormId != null)
+            // JotForm iframe src oluþtur (hidden field parametreleri ile)
+            if (!string.IsNullOrWhiteSpace(JotFormId))
             {
-                var idString = form.JotFormId.ToString();
-                if (!string.IsNullOrWhiteSpace(idString))
-                {
-                    // Hidden field'lar için query parametreleri ekle
-                    JotFormIFrameSrc = $"https://form.jotform.com/{idString}?userId={userId}&formId={FormId}&groupId={actualGroupId}";
-                    JotFormBaseUrl = "https://form.jotform.com";
-                    JotFormEmbedHandlerUrl = string.Empty;
-                    
-                    _logger.LogInformation($"JotForm iframe URL: {JotFormIFrameSrc}");
-                    return Page();
-                }
+                JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={actualGroupId}";
+                JotFormBaseUrl = "https://form.jotform.com";
+                JotFormEmbedHandlerUrl = string.Empty;
+                
+                _logger.LogInformation($"JotForm iframe URL: {JotFormIFrameSrc}");
+            }
+            else
+            {
+                _logger.LogWarning($"JotForm ID is empty for FormId={id}");
+                JotFormIFrameSrc = "about:blank";
             }
 
-            _logger.LogWarning($"JotForm ID is empty for FormId={id}");
-            JotFormIFrameSrc = "about:blank";
             return Page();
         }
     }
