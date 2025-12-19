@@ -1,270 +1,139 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using FormSepeti.Data.Entities;
 using FormSepeti.Services.Interfaces;
 
 namespace FormSepeti.Web.Controllers
 {
+    [Route("[controller]/[action]")]
     public class AccountController : Controller
     {
         private readonly IUserService _userService;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(IUserService userService)
+        public AccountController(
+            IUserService userService,
+            ILogger<AccountController> logger)
         {
             _userService = userService;
+            _logger = logger;
         }
 
         [HttpGet]
-        public IActionResult Register()
+        [AllowAnonymous]
+        public IActionResult GoogleLogin(string returnUrl = null)
         {
-            if (User.Identity.IsAuthenticated)
+            var properties = new AuthenticationProperties
             {
-                return RedirectToAction("Index", "Dashboard");
-            }
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var result = await _userService.RegisterUserAsync(model.Email, model.Password, model.PhoneNumber);
-
-            if (result.Success)
-            {
-                TempData["Success"] = result.Message;
-                return RedirectToAction("RegisterSuccess");
-            }
-            else
-            {
-                ModelState.AddModelError("", result.ErrorMessage);
-                return View(model);
-            }
-        }
-
-        [HttpGet]
-        public IActionResult RegisterSuccess()
-        {
-            return View();
-        }
-
-        [HttpGet]
-        public IActionResult Login(string returnUrl = null)
-        {
-            if (User.Identity.IsAuthenticated)
-            {
-                return RedirectToAction("Index", "Dashboard");
-            }
-            ViewData["ReturnUrl"] = returnUrl;
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
-        {
-            ViewData["ReturnUrl"] = returnUrl;
-
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var user = await _userService.AuthenticateAsync(model.Email, model.Password);
-
-            if (user == null)
-            {
-                ModelState.AddModelError("", "E-posta veya şifre hatalı.");
-                return View(model);
-            }
-
-            if (!user.IsActivated)
-            {
-                TempData["Error"] = "Hesabınız henüz aktive edilmemiş. Lütfen e-postanızı kontrol edin.";
-                TempData["Email"] = model.Email;
-                return RedirectToAction("ActivationPending");
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim("UserId", user.UserId.ToString()),
-                new Claim("Email", user.Email)
+                RedirectUri = Url.Action("GoogleCallback", new { returnUrl }),
+                Items = { { "LoginProvider", "Google" } }
             };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = model.RememberMe,
-                ExpiresUtc = model.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(2)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties
-            );
-
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                return Redirect(returnUrl);
-            }
-
-            return RedirectToAction("Index", "Dashboard");
+            
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
 
         [HttpGet]
-        public IActionResult ActivationPending()
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleCallback(string returnUrl = null)
         {
-            return View();
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Activate(string token)
-        {
-            if (string.IsNullOrEmpty(token))
+            try
             {
-                TempData["Error"] = "Geçersiz aktivasyon linki.";
-                return RedirectToAction("Login");
+                // Google'dan gelen authentication bilgilerini al
+                var authenticateResult = await HttpContext.AuthenticateAsync(
+                    GoogleDefaults.AuthenticationScheme);
+                
+                if (!authenticateResult.Succeeded)
+                {
+                    _logger.LogWarning("Google authentication failed");
+                    TempData["Error"] = "Google girişi başarısız oldu.";
+                    return RedirectToPage("/Account/Login");
+                }
+                
+                // Google bilgilerini çek
+                var googleId = authenticateResult.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var email = authenticateResult.Principal.FindFirst(ClaimTypes.Email)?.Value;
+                var name = authenticateResult.Principal.FindFirst(ClaimTypes.Name)?.Value;
+                
+                // Token'ları al
+                var tokens = authenticateResult.Properties.GetTokens();
+                var accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
+                var refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
+                
+                _logger.LogInformation($"Google callback - GoogleId: {googleId}, Email: {email}, HasRefreshToken: {!string.IsNullOrEmpty(refreshToken)}");
+                
+                if (string.IsNullOrEmpty(googleId) || string.IsNullOrEmpty(email))
+                {
+                    _logger.LogError("Google callback - Missing googleId or email");
+                    TempData["Error"] = "Google hesap bilgileri alınamadı.";
+                    return RedirectToPage("/Account/Login");
+                }
+                
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    _logger.LogError("Google callback - Missing access token");
+                    TempData["Error"] = "Google erişim izni alınamadı.";
+                    return RedirectToPage("/Account/Login");
+                }
+                
+                // Kullanıcıyı oluştur veya güncelle
+                var user = await _userService.GetOrCreateGoogleUserAsync(
+                    googleId, 
+                    email, 
+                    name ?? email.Split('@')[0], 
+                    accessToken, 
+                    refreshToken);
+                
+                if (user == null)
+                {
+                    _logger.LogError("Failed to create/update Google user");
+                    TempData["Error"] = "Kullanıcı oluşturulamadı.";
+                    return RedirectToPage("/Account/Login");
+                }
+                
+                // Cookie authentication claim'leri oluştur
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim("UserId", user.UserId.ToString()),
+                    new Claim("Email", user.Email),
+                    new Claim("LoginProvider", "Google")
+                };
+                
+                var claimsIdentity = new ClaimsIdentity(
+                    claims, 
+                    CookieAuthenticationDefaults.AuthenticationScheme);
+                
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+                };
+                
+                // Kullanıcıyı login et
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+                
+                _logger.LogInformation($"✅ User logged in via Google: {email}");
+                
+                // Return URL'e yönlendir veya Dashboard'a git
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+                
+                return RedirectToPage("/Dashboard/Index");
             }
-
-            var success = await _userService.ActivateAccountAsync(token);
-
-            if (success)
+            catch (Exception ex)
             {
-                TempData["Success"] = "Hesabınız başarıyla aktive edildi! Artık giriş yapabilirsiniz.";
-                return RedirectToAction("Login");
-            }
-            else
-            {
-                TempData["Error"] = "Aktivasyon başarısız. Link geçersiz veya süresi dolmuş olabilir.";
-                return RedirectToAction("ActivationPending");
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ResendActivation(string email)
-        {
-            if (string.IsNullOrEmpty(email))
-            {
-                return Json(new { success = false, message = "E-posta adresi gerekli." });
-            }
-
-            var success = await _userService.ResendActivationEmailAsync(email);
-
-            if (success)
-            {
-                return Json(new { success = true, message = "Aktivasyon e-postası tekrar gönderildi." });
-            }
-            else
-            {
-                return Json(new { success = false, message = "E-posta gönderilemedi." });
-            }
-        }
-
-        [HttpGet]
-        public IActionResult ForgotPassword()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            await _userService.RequestPasswordResetAsync(model.Email);
-            TempData["Success"] = "Eğer bu e-posta adresi kayıtlıysa, şifre sıfırlama linki gönderildi.";
-            return RedirectToAction("ForgotPasswordConfirmation");
-        }
-
-        [HttpGet]
-        public IActionResult ForgotPasswordConfirmation()
-        {
-            return View();
-        }
-
-        [HttpGet]
-        public IActionResult ResetPassword(string token)
-        {
-            if (string.IsNullOrEmpty(token))
-            {
-                return RedirectToAction("Login");
-            }
-
-            var model = new ResetPasswordViewModel { Token = token };
-            return View(model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var success = await _userService.ResetPasswordAsync(model.Token, model.NewPassword);
-
-            if (success)
-            {
-                TempData["Success"] = "Şifreniz başarıyla değiştirildi. Artık giriş yapabilirsiniz.";
-                return RedirectToAction("Login");
-            }
-            else
-            {
-                ModelState.AddModelError("", "Şifre sıfırlama başarısız.");
-                return View(model);
-            }
-        }
-
-        [HttpGet]
-        [Authorize]
-        public IActionResult ChangePassword()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var userId = GetCurrentUserId();
-            var success = await _userService.ChangePasswordAsync(userId, model.OldPassword, model.NewPassword);
-
-            if (success)
-            {
-                TempData["Success"] = "Şifreniz başarıyla değiştirildi.";
-                return RedirectToAction("Index", "Dashboard");
-            }
-            else
-            {
-                ModelState.AddModelError("", "Mevcut şifre hatalı.");
-                return View(model);
+                _logger.LogError(ex, "Error in Google callback");
+                TempData["Error"] = "Giriş sırasında bir hata oluştu.";
+                return RedirectToPage("/Account/Login");
             }
         }
 
@@ -273,130 +142,34 @@ namespace FormSepeti.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            
+            // Cookie authentication'dan çıkış yap
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login");
+            
+            // Session'ı temizle
+            HttpContext.Session.Clear();
+            
+            _logger.LogInformation($"✅ User logged out: {userEmail}");
+            
+            TempData["Success"] = "Başarıyla çıkış yaptınız.";
+            return RedirectToPage("/Account/Login");
         }
 
         [HttpGet]
-        [Authorize]
-        public async Task<IActionResult> Profile()
+        [AllowAnonymous]
+        public async Task<IActionResult> LogoutGet()
         {
-            var userId = GetCurrentUserId();
-            var user = await _userService.GetUserByIdAsync(userId);
-
-            if (user == null)
-            {
-                return RedirectToAction("Logout");
-            }
-
-            var model = new ProfileViewModel
-            {
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
-                CreatedDate = user.CreatedDate,
-                LastLoginDate = user.LastLoginDate,
-                IsGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken)
-            };
-
-            return View(model);
+            // GET request için de çıkış yapabilmek amacıyla
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
+            
+            _logger.LogInformation($"✅ User logged out: {userEmail}");
+            
+            TempData["Success"] = "Başarıyla çıkış yaptınız.";
+            return RedirectToPage("/Account/Login");
         }
-
-        [HttpGet]
-        public IActionResult AccessDenied()
-        {
-            return View();
-        }
-
-        private int GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst("UserId")?.Value;
-            return int.Parse(userIdClaim ?? "0");
-        }
-    }
-
-    // View Models
-    public class RegisterViewModel
-    {
-        [Required(ErrorMessage = "E-posta adresi gereklidir.")]
-        [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
-        public string Email { get; set; }
-
-        [Required(ErrorMessage = "Şifre gereklidir.")]
-        [MinLength(6, ErrorMessage = "Şifre en az 6 karakter olmalıdır.")]
-        [DataType(DataType.Password)]
-        public string Password { get; set; }
-
-        [Required(ErrorMessage = "Şifre tekrarı gereklidir.")]
-        [Compare("Password", ErrorMessage = "Şifreler eşleşmiyor.")]
-        [DataType(DataType.Password)]
-        public string ConfirmPassword { get; set; }
-
-        [Phone(ErrorMessage = "Geçerli bir telefon numarası giriniz.")]
-        public string PhoneNumber { get; set; }
-
-        [Required(ErrorMessage = "Kullanım şartlarını kabul etmelisiniz.")]
-        public bool AcceptTerms { get; set; }
-    }
-
-    public class LoginViewModel
-    {
-        [Required(ErrorMessage = "E-posta adresi gereklidir.")]
-        [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
-        public string Email { get; set; }
-
-        [Required(ErrorMessage = "Şifre gereklidir.")]
-        [DataType(DataType.Password)]
-        public string Password { get; set; }
-
-        public bool RememberMe { get; set; }
-    }
-
-    public class ForgotPasswordViewModel
-    {
-        [Required(ErrorMessage = "E-posta adresi gereklidir.")]
-        [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
-        public string Email { get; set; }
-    }
-
-    public class ResetPasswordViewModel
-    {
-        [Required]
-        public string Token { get; set; }
-
-        [Required(ErrorMessage = "Yeni şifre gereklidir.")]
-        [MinLength(6, ErrorMessage = "Şifre en az 6 karakter olmalıdır.")]
-        [DataType(DataType.Password)]
-        public string NewPassword { get; set; }
-
-        [Required(ErrorMessage = "Şifre tekrarı gereklidir.")]
-        [Compare("NewPassword", ErrorMessage = "Şifreler eşleşmiyor.")]
-        [DataType(DataType.Password)]
-        public string ConfirmPassword { get; set; }
-    }
-
-    public class ChangePasswordViewModel
-    {
-        [Required(ErrorMessage = "Mevcut şifre gereklidir.")]
-        [DataType(DataType.Password)]
-        public string OldPassword { get; set; }
-
-        [Required(ErrorMessage = "Yeni şifre gereklidir.")]
-        [MinLength(6, ErrorMessage = "Şifre en az 6 karakter olmalıdır.")]
-        [DataType(DataType.Password)]
-        public string NewPassword { get; set; }
-
-        [Required(ErrorMessage = "Şifre tekrarı gereklidir.")]
-        [Compare("NewPassword", ErrorMessage = "Şifreler eşleşmiyor.")]
-        [DataType(DataType.Password)]
-        public string ConfirmPassword { get; set; }
-    }
-
-    public class ProfileViewModel
-    {
-        public string Email { get; set; }
-        public string PhoneNumber { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime? LastLoginDate { get; set; }
-        public bool IsGoogleConnected { get; set; }
     }
 }

@@ -4,38 +4,69 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Giriş";
 }
-<div class="row">
-    <div class="col-md-5 mx-auto">
-        <h3 class="mb-3">Giriş Yap</h3>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Giriş Yap</h3>
+                
+                @* ✅ YENİ - Kalan deneme hakkı uyarısı *@
+                @if (Model.RemainingAttempts > 0 && Model.RemainingAttempts < 5)
+                {
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Kalan deneme hakkınız: <strong>@Model.RemainingAttempts</strong>
+                    </div>
+                }
+                
+                @* Google Login *@
+                <div class="text-center mb-4">
+                    <a href="@Url.Action("GoogleLogin", "Account", new { returnUrl = ViewData["ReturnUrl"] })" 
+                       class="btn btn-danger btn-lg w-100">
+                        <i class="fab fa-google me-2"></i>
+                        Google ile Giriş Yap
+                    </a>
+                    <p class="text-muted mt-3 mb-0">
+                        <small>Google ile giriş yaparak hem hesap oluşturur hem de Google Sheets erişimi sağlarsınız.</small>
+                    </p>
+                </div>
+                
+                <hr class="my-4">
+                <p class="text-center text-muted">veya</p>
+                <hr class="my-4">
+                
+                @* Normal Login Form *@
+                <form method="post" novalidate>
+                    <div asp-validation-summary="All" class="text-danger mb-2"></div>
+                    @if (!string.IsNullOrEmpty(Model.Error))
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle me-2"></i>@Model.Error
+                        </div>
+                    }
 
-        <form method="post" novalidate>
-            @* show ModelState and explicit Error property *@
-            <div asp-validation-summary="All" class="text-danger mb-2"></div>
-            @if (!string.IsNullOrEmpty(Model.Error))
-            {
-                <div class="alert alert-danger">@Model.Error</div>
-            }
+                    <div class="mb-3">
+                        <label asp-for="EmailOrPhone" class="form-label">Email veya Telefon</label>
+                        <input asp-for="EmailOrPhone" class="form-control" />
+                        <span asp-validation-for="EmailOrPhone" class="text-danger"></span>
+                    </div>
 
-            <div class="mb-3">
-                <label asp-for="EmailOrPhone" class="form-label">Email veya Telefon</label>
-                <input asp-for="EmailOrPhone" class="form-control" />
-                <span asp-validation-for="EmailOrPhone" class="text-danger"></span>
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Şifre</label>
+                        <input asp-for="Password" type="password" class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                    </div>
+
+                    <div class="mt-3 text-center">
+                        <a asp-page="/Account/Register">Kayıt Ol</a>
+                    </div>
+                </form>
             </div>
-
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label">Şifre</label>
-                <input asp-for="Password" type="password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Giriş Yap</button>
-            </div>
-
-            <div class="mt-3 text-center">
-                <a asp-page="/Account/Register">Kayıt Ol</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 

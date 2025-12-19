@@ -1,25 +1,46 @@
-﻿@* navbar partial for Razor Pages: outputs <li> elements only *@
+﻿@* ✅ Identity bağımlılıklarını kaldır *@
 @{
     var isAuth = User?.Identity?.IsAuthenticated ?? false;
-    var name = User?.Identity?.Name ?? "Hesap";
+    var email = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+    var userName = email?.Split('@')[0] ?? "Kullanıcı";
 }
+
 @if (isAuth)
 {
-    <li><a asp-page="/Form/Index">Formlar</a></li>
-
-    <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-            Hoşgeldin, @name <span class="caret"></span>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" 
+           data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-user-circle me-2"></i>
+            <span>@userName</span>
         </a>
-        <ul class="dropdown-menu">
-            <li><a asp-page="/Dashboard/Index">Dashboard</a></li>
-            <li><a asp-page="/Account/Profile">Profil</a></li>
-            <li><a asp-page="/Package/Index">Paketlerim</a></li>
-            <li><a asp-page="/Sheets/Connect">Google Sheets Bağla</a></li>
-            <li role="separator" class="divider"></li>
+        <ul class="dropdown-menu dropdown-menu-end modern-dropdown" aria-labelledby="userDropdown">
             <li>
-                <form method="post" asp-controller="Account" asp-action="Logout" class="navbar-form">
-                    <button type="submit" class="btn btn-link">Çıkış Yap</button>
+                <a class="dropdown-item" asp-page="/Dashboard/Index">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" asp-page="/Account/Profile">
+                    <i class="fas fa-user me-2"></i>Profil
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" asp-page="/Package/Index">
+                    <i class="fas fa-box me-2"></i>Paketlerim
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" asp-page="/Sheets/Connect">
+                    <i class="fab fa-google me-2"></i>Google Sheets
+                </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <form method="post" action="@Url.Action("Logout", "Account")" id="logoutForm">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="dropdown-item text-danger">
+                        <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
+                    </button>
                 </form>
             </li>
         </ul>
@@ -27,6 +48,14 @@
 }
 else
 {
-    <li><a asp-page="/Account/Login">Giriş</a></li>
-    <li><a asp-page="/Account/Register">Kayıt</a></li>
+    <li class="nav-item">
+        <a class="nav-link" asp-page="/Account/Login">
+            <i class="fas fa-sign-in-alt me-2"></i>Giriş
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link btn btn-primary-gradient px-3 ms-2" asp-page="/Account/Register">
+            <i class="fas fa-user-plus me-2"></i>Kayıt Ol
+        </a>
+    </li>
 }

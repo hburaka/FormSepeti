@@ -4,43 +4,69 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Kayıt Ol";
 }
-<div class="row">
-    <div class="col-md-6 mx-auto">
-        <h3 class="mb-3">Kayıt Ol</h3>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Kayıt Ol</h3>
+                
+                @* ✅ GOOGLE İLE KAYIT BUTONU - Razor Pages için *@
+                <div class="text-center mb-4">
+                    <a href="/Account/GoogleLogin" class="btn btn-danger btn-lg w-100">
+                        <i class="fab fa-google me-2"></i>
+                        Google ile Kayıt Ol
+                    </a>
+                    <p class="text-muted mt-3 mb-0">
+                        <small>
+                            <i class="fas fa-check-circle text-success me-1"></i> Tek tıkla hesap oluştur<br>
+                            <i class="fas fa-check-circle text-success me-1"></i> Email doğrulama gerektirmez<br>
+                            <i class="fas fa-check-circle text-success me-1"></i> Google Sheets otomatik bağlanır
+                        </small>
+                    </p>
+                </div>
+                
+                <hr class="my-4">
+                <p class="text-center text-muted">veya</p>
+                <hr class="my-4">
+                
+                @* Normal kayıt formu - Razor Pages için *@
+                <form method="post" novalidate>
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="mb-3">
+                        <label asp-for="EmailOrPhone" class="form-label">Email veya Telefon</label>
+                        <input asp-for="EmailOrPhone" class="form-control" />
+                        <span asp-validation-for="EmailOrPhone" class="text-danger"></span>
+                    </div>
 
-        <form method="post" novalidate>
-            <div class="mb-3">
-                <label asp-for="EmailOrPhone" class="form-label">Email veya Telefon</label>
-                <input asp-for="EmailOrPhone" class="form-control" />
-                <span asp-validation-for="EmailOrPhone" class="text-danger"></span>
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Şifre</label>
+                        <input asp-for="Password" type="password" class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ConfirmPassword" class="form-label">Şifre Tekrar</label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="AcceptTerms" class="form-check-input" />
+                        <label asp-for="AcceptTerms" class="form-check-label">Kullanım şartlarını kabul ediyorum</label>
+                        <span asp-validation-for="AcceptTerms" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Kayıt Ol</button>
+                    </div>
+
+                    <p class="mt-3 text-center">
+                        Zaten hesabın var mı? <a asp-page="/Account/Login">Giriş Yap</a>
+                    </p>
+                </form>
             </div>
-
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label">Şifre</label>
-                <input asp-for="Password" type="password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="ConfirmPassword" class="form-label">Şifre Tekrar</label>
-                <input asp-for="ConfirmPassword" type="password" class="form-control" />
-                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-            </div>
-
-            <div class="form-check mb-3">
-                <input asp-for="AcceptTerms" class="form-check-input" />
-                <label asp-for="AcceptTerms" class="form-check-label">Kullanım şartlarını kabul ediyorum</label>
-                <span asp-validation-for="AcceptTerms" class="text-danger"></span>
-            </div>
-
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Kayıt Ol</button>
-            </div>
-
-            <p class="mt-3 text-center">
-                Zaten hesabın var mı? <a asp-page="/Account/Login">Giriş Yap</a>
-            </p>
-        </form>
+        </div>
     </div>
 </div>
 

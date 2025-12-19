@@ -14,18 +14,18 @@ namespace FormSepeti.Data.Repositories.Implementations
             _context = context;
         }
 
-        public async Task<User> GetByIdAsync(int userId)
+        public async Task<User?> GetByIdAsync(int userId) // ✅ Nullable return
         {
             return await _context.Users.FindAsync(userId);
         }
 
-        public async Task<User> GetByEmailAsync(string email)
+        public async Task<User?> GetByEmailAsync(string email) // ✅ Nullable return
         {
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        public async Task<User> GetByActivationTokenAsync(string token)
+        public async Task<User?> GetByActivationTokenAsync(string token) // ✅ Nullable return
         {
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.ActivationToken == token);
@@ -53,10 +53,17 @@ namespace FormSepeti.Data.Repositories.Implementations
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<User> GetByEmailOrPhoneAsync(string emailOrPhone)
+        public async Task<User?> GetByEmailOrPhoneAsync(string emailOrPhone) // ✅ Nullable return
         {
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == emailOrPhone || u.PhoneNumber == emailOrPhone);
+        }
+
+        public async Task<User?> GetByGoogleIdAsync(string googleId) // ✅ Nullable return
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.GoogleId == googleId);
         }
     }
 }

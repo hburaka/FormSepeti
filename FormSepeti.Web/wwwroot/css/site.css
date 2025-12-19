@@ -1296,3 +1296,48 @@ small {
         top: 30px;
         transform: rotate(45deg);
     }
+
+/* Modern Dropdown Styles */
+.modern-dropdown {
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    min-width: 220px;
+}
+
+.modern-dropdown .dropdown-item {
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.modern-dropdown .dropdown-item:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateX(5px);
+}
+
+.modern-dropdown .dropdown-item i {
+    width: 20px;
+    text-align: center;
+}
+
+.modern-dropdown .dropdown-divider {
+    margin: 0.5rem 0;
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+.modern-dropdown .text-danger:hover {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white !important;
+}
+
+/* Logout form button styling */
+#logoutForm button {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: none;
+}

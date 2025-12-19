@@ -104,7 +104,7 @@ namespace FormSepeti.Services.Implementations
                 var createdPackage = await _userPackageRepository.CreateAsync(userPackage);
 
                 var user = await _userRepository.GetByIdAsync(userId);
-                if (user != null)
+                if (user != null && !string.IsNullOrEmpty(user.Email))
                 {
                     await _emailService.SendPackagePurchaseConfirmationAsync(
                         user.Email,

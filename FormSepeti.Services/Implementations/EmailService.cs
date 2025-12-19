@@ -73,6 +73,61 @@ namespace FormSepeti.Services.Implementations
             return await SendEmailAsync(toEmail, subject, body, "Custom");
         }
 
+        // ✅ YENİ - Mevcut hesap bildirimi
+        public async Task<bool> SendAccountExistsNotificationAsync(string toEmail)
+        {
+            try
+            {
+                var subject = "Hesap Kaydı Denemesi - FormSepeti";
+                var forgotPasswordUrl = $"{_baseUrl}/Account/ForgotPassword"; // ✅ appsettings'ten al
+                
+                var body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                            <h2 style='color: #6366f1;'>Hesap Kaydı Denemesi</h2>
+                            <p>Merhaba,</p>
+                            <p>Bu e-posta adresi ile FormSepeti'de zaten bir hesabınız bulunmaktadır.</p>
+                            <p>Eğer bu işlemi siz yapmadıysanız, hesabınızın güvenliği için şifrenizi değiştirmenizi öneririz.</p>
+                            <p>Şifrenizi unuttuysanız, <a href='{forgotPasswordUrl}'>şifre sıfırlama</a> sayfasını kullanabilirsiniz.</p>
+                            <br>
+                            <p style='color: #64748b; font-size: 12px;'>
+                                Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın.
+                            </p>
+                        </div>
+                    </body>
+                    </html>";
+
+                return await SendEmailAsync(toEmail, subject, body, "AccountExists");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending account exists notification to {Email}", toEmail);
+                return false;
+            }
+        }
+
+        // ✅ YENİ - Form gönderim bildirimi
+        public async Task<bool> SendFormSubmissionNotificationAsync(string toEmail, string formTitle, int submissionCount)
+        {
+            var subject = "Yeni Form Yanıtı Bildirimi";
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                        <h2 style='color: #6366f1;'>Yeni Form Yanıtı</h2>
+                        <p>Formunuz (<strong>{formTitle}</strong>) için yeni bir yanıt alındı.</p>
+                        <p>Toplam yanıt sayısı: <strong>{submissionCount}</strong></p>
+                        <br>
+                        <p style='color: #64748b; font-size: 12px;'>
+                            Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın.
+                        </p>
+                    </div>
+                </body>
+                </html>";
+            return await SendEmailAsync(toEmail, subject, body, "FormSubmission");
+        }
+
         private async Task<bool> SendEmailAsync(string toEmail, string subject, string body, string emailType)
         {
             try

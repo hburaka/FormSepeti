@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 using FormSepeti.Data;
 using FormSepeti.Data.Repositories.Interfaces;
@@ -6,11 +8,10 @@ using FormSepeti.Data.Repositories.Implementations;
 using FormSepeti.Services.Interfaces;
 using FormSepeti.Services.Implementations;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.OAuth; // ✅ BU SATIRI EKLEYİN
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ ngrok için host header validation'ı kapat (sadece development)
 if (builder.Environment.IsDevelopment())
 {
     builder.WebHost.ConfigureKestrel(options =>
@@ -26,24 +27,93 @@ var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(opts =>
     opts.UseSqlServer(conn));
 
-builder.Services.AddAuthentication("Cookie")
-    .AddCookie("Cookie", options =>
+// ✅ Authentication & Authorization - GÜVENLİK GÜÇLENDİRMESİ
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    
+    // ✅ GÜVENLIK AYARLARI
+    options.Cookie.Name = ".FormSepeti.Auth";
+    options.Cookie.HttpOnly = true;  // ✅ JavaScript erişimini engelle (XSS koruması)
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // ✅ Sadece HTTPS
+    options.Cookie.SameSite = SameSiteMode.Lax;  // ✅ CSRF koruması (Strict yerine Lax - Google callback için)
+    options.Cookie.IsEssential = true;
+    
+    // ✅ OTURUM SÜRESİ - 30 gün → 8 saat
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;  // Aktif kullanımda süre yenilenir
+    
+    // ✅ LOGOUT SONRASI YÖNLENDİRME
+    options.Events = new CookieAuthenticationEvents
     {
-        options.LoginPath = "/Account/Login";
-        options.Cookie.Name = "FormSepeti.Auth";
-    });
+        OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = 401;
+            context.Response.Redirect(options.LoginPath);
+            return Task.CompletedTask;
+        }
+    };
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Google:ClientId"] 
+        ?? throw new InvalidOperationException("Google ClientId is missing");
+    options.ClientSecret = builder.Configuration["Google:ClientSecret"] 
+        ?? throw new InvalidOperationException("Google ClientSecret is missing");
+    options.CallbackPath = "/signin-google";
+    
+    options.Scope.Add("https://www.googleapis.com/auth/spreadsheets");
+    options.Scope.Add("https://www.googleapis.com/auth/drive.file");
+    options.Scope.Add("email");
+    options.Scope.Add("profile");
+    
+    options.AccessType = "offline";
+    options.SaveTokens = true;
+    
+    options.Events.OnCreatingTicket = context =>
+    {
+        var tokens = context.Properties.GetTokens().ToList();
+        
+        if (!string.IsNullOrEmpty(context.AccessToken))
+        {
+            tokens.Add(new AuthenticationToken
+            {
+                Name = "access_token",
+                Value = context.AccessToken
+            });
+        }
+        
+        if (!string.IsNullOrEmpty(context.RefreshToken))
+        {
+            tokens.Add(new AuthenticationToken
+            {
+                Name = "refresh_token",
+                Value = context.RefreshToken
+            });
+        }
+        
+        context.Properties.StoreTokens(tokens);
+        return Task.CompletedTask;
+    };
+});
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddDistributedMemoryCache(); // Session için gerekli
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // 30 dakika timeout
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true; // GDPR uyumlu
-    options.Cookie.Name = ".FormSepeti.Session"; // Özel cookie adı
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".FormSepeti.Session";
 });
-
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -65,6 +135,9 @@ builder.Services.AddScoped<IIyzicoPaymentService, IyzicoPaymentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IFormService, FormService>();
+builder.Services.AddScoped<ILoginAttemptService, LoginAttemptService>(); // Buraya ekledim
+// ✅ YENİ - Rate Limiting Servisi (Singleton olmalı - uygulama boyunca tek instance)
+builder.Services.AddSingleton<LoginAttemptService>();
 
 builder.Services.AddHttpClient<IJotFormService, JotFormService>(client =>
 {
@@ -76,7 +149,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(builder.Configuration["Application:BaseUrl"])
+        var baseUrl = builder.Configuration["Application:BaseUrl"] ?? "https://localhost:7099";
+        policy.WithOrigins(baseUrl)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -91,33 +165,26 @@ builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    
-    // ✅ Webhook endpoint'lerini antiforgery'den hariç tut
     options.SuppressXFrameOptionsHeader = false;
 });
 
-// ✅ Controllers için ignore attribute
 builder.Services.AddControllers(options =>
 {
-    // Webhook endpoint'leri için model validation hatalarını logla
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
 });
 
 var app = builder.Build();
 
-// ✅ Forwarded Headers (ngrok için)
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
-                       Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-// ✅ ngrok için forwarded headers middleware ekle
 if (app.Environment.IsDevelopment())
 {
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
-        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.All
+        ForwardedHeaders = ForwardedHeaders.All
     });
 }
 
@@ -133,15 +200,11 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseSession(); // <-- BURASI ÖNEMLİ
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",

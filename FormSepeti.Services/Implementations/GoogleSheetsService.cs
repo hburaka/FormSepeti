@@ -21,7 +21,7 @@ namespace FormSepeti.Services.Implementations
     {
         private readonly string _clientId;
         private readonly string _clientSecret;
-        private readonly string _redirectUri;
+        private readonly string _sheetsRedirectUri; // ✅ Sheets için özel
         private readonly IUserRepository _userRepository;
         private readonly IUserGoogleSheetsRepository _sheetsRepository;
         private readonly IEncryptionService _encryptionService;
@@ -37,11 +37,11 @@ namespace FormSepeti.Services.Implementations
             IUserRepository userRepository,
             IUserGoogleSheetsRepository sheetsRepository,
             IEncryptionService encryptionService,
-            ILogger<GoogleSheetsService> logger) // ✅ EKLENDI
+            ILogger<GoogleSheetsService> logger)
         {
             _clientId = configuration["Google:ClientId"];
             _clientSecret = configuration["Google:ClientSecret"];
-            _redirectUri = configuration["Google:RedirectUri"];
+            _sheetsRedirectUri = configuration["Google:SheetsRedirectUri"]; // ✅ Değişiklik
             _userRepository = userRepository;
             _sheetsRepository = sheetsRepository;
             _encryptionService = encryptionService;
@@ -51,7 +51,7 @@ namespace FormSepeti.Services.Implementations
         public Task<string> GetAuthorizationUrl(int userId)
         {
             var clientId = _clientId;
-            var redirect = _redirectUri;
+            var redirect = _sheetsRedirectUri; // ✅ Sheets için özel redirect
             var scopes = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 
             if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(redirect))
@@ -93,7 +93,7 @@ namespace FormSepeti.Services.Implementations
                 var tokenResponse = await flow.ExchangeCodeForTokenAsync(
                     userId.ToString(),
                     code,
-                    _redirectUri,
+                    _sheetsRedirectUri, // ✅ Sheets için özel redirect
                     System.Threading.CancellationToken.None
                 );
 
