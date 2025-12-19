@@ -10,21 +10,22 @@ namespace FormSepeti.Web.Pages.Account
     public class ProfileModel : PageModel
     {
         private readonly IUserService _userService;
-        private readonly IFormSubmissionRepository _submissionRepository; // ✅ EKLE
-        private readonly IUserPackageRepository _packageRepository; // ✅ EKLE
+        private readonly IFormSubmissionRepository _submissionRepository;
+        private readonly IUserPackageRepository _packageRepository;
 
         public ProfileModel(
             IUserService userService,
-            IFormSubmissionRepository submissionRepository, // ✅ EKLE
-            IUserPackageRepository packageRepository) // ✅ EKLE
+            IFormSubmissionRepository submissionRepository,
+            IUserPackageRepository packageRepository)
         {
             _userService = userService;
-            _submissionRepository = submissionRepository; // ✅ EKLE
-            _packageRepository = packageRepository; // ✅ EKLE
+            _submissionRepository = submissionRepository;
+            _packageRepository = packageRepository;
         }
 
         public string? Email { get; private set; }
         public string? Phone { get; private set; }
+        public string? ProfilePhotoUrl { get; private set; } // ✅ EKLENDI
         public string CreatedDate { get; private set; } = "-";
         public string LastLoginDate { get; private set; } = "-";
         public bool IsGoogleConnected { get; private set; }
@@ -59,13 +60,12 @@ namespace FormSepeti.Web.Pages.Account
 
             Email = user.Email;
             Phone = user.PhoneNumber;
+            ProfilePhotoUrl = user.ProfilePhotoUrl; // ✅ EKLENDI
             CreatedDate = user.CreatedDate.ToString("dd MMMM yyyy");
             LastLoginDate = user.LastLoginDate?.ToString("dd MMMM yyyy HH:mm") ?? "Hiç giriş yapılmadı";
             IsGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
 
-            // ✅ GERÇEK İSTATİSTİKLER
             TotalSubmissions = await _submissionRepository.GetCountByUserIdAsync(id);
-            
             var activePackages = await _packageRepository.GetActiveByUserIdAsync(id);
             ActivePackages = activePackages.Count;
 

@@ -440,6 +440,30 @@ namespace FormSepeti.Services.Implementations
             return await _sheetsRepository.GetByUserAndGroupAsync(userId, groupId);
         }
 
+        public async Task<List<UserGoogleSheet>> GetUserSheetsAsync(int userId)
+        {
+            return await _sheetsRepository.GetByUserIdAsync(userId);
+        }
+
+        public async Task<bool> TestConnectionAsync(int userId)
+        {
+            try
+            {
+                var service = await GetSheetsService(userId);
+                if (service == null) return false;
+                
+                // Basit bir test isteği at
+                var request = service.Spreadsheets.Get("test");
+                await request.ExecuteAsync();
+                
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private async Task<SheetsService> GetSheetsService(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);

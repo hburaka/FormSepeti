@@ -16,7 +16,7 @@ namespace FormSepeti.Services.Interfaces
         Task<User> GetUserByIdAsync(int userId);
         Task<bool> IsEmailExistsAsync(string email);
         Task<bool> UpdateUserAsync(User user);
-        Task<User> GetOrCreateGoogleUserAsync(string googleId, string email, string name, string accessToken, string refreshToken);
+        Task<User> GetOrCreateGoogleUserAsync(string googleId, string email, string name, string accessToken, string refreshToken, string? photoUrl = null);
         Task<User> GetUserByGoogleIdAsync(string googleId);
     }
 }

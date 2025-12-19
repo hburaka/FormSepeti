@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using FormSepeti.Data.Entities;
 
 namespace FormSepeti.Data.Repositories.Interfaces
@@ -10,5 +11,6 @@ namespace FormSepeti.Data.Repositories.Interfaces
         Task<UserGoogleSheet> CreateAsync(UserGoogleSheet sheet);
         Task<bool> UpdateAsync(UserGoogleSheet sheet);
         Task<bool> DeleteAsync(int sheetId);
+        Task<List<UserGoogleSheet>> GetByUserIdAsync(int userId);
     }
 }

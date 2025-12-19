@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using FormSepeti.Data.Entities;
 using FormSepeti.Data.Repositories.Interfaces;
@@ -45,6 +46,13 @@ namespace FormSepeti.Data.Repositories.Implementations
 
             _context.UserGoogleSheets.Remove(sheet);
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<List<UserGoogleSheet>> GetByUserIdAsync(int userId)
+        {
+            return await _context.UserGoogleSheets
+                .Where(s => s.UserId == userId)
+                .ToListAsync();
         }
     }
 }

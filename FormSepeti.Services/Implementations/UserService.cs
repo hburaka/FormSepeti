@@ -455,7 +455,8 @@ namespace FormSepeti.Services.Implementations
             string email, 
             string name, 
             string accessToken, 
-            string refreshToken)
+            string refreshToken,
+            string? photoUrl = null) // ✅ EKLENDİ
         {
             try
             {
@@ -464,12 +465,18 @@ namespace FormSepeti.Services.Implementations
                 
                 if (user != null)
                 {
-                    // ✅ Mevcut kullanıcı - token'ları güncelle
+                    // ✅ Mevcut kullanıcı - token'ları ve fotoğrafı güncelle
                     user.GoogleAccessToken = _encryptionService.Encrypt(accessToken);
                     
                     if (!string.IsNullOrEmpty(refreshToken))
                     {
                         user.GoogleRefreshToken = _encryptionService.Encrypt(refreshToken);
+                    }
+                    
+                    // ✅ PHOTO URL'İ GÜNCELLE
+                    if (!string.IsNullOrEmpty(photoUrl))
+                    {
+                        user.ProfilePhotoUrl = photoUrl;
                     }
                     
                     user.GoogleTokenExpiry = DateTime.UtcNow.AddHours(1);
@@ -481,12 +488,12 @@ namespace FormSepeti.Services.Implementations
                     return user;
                 }
                 
-                // 2. Email ile kullanıcı ara (normal kayıtlı kullanıcı Google ile giriş yapıyorsa)
+                // 2. Email ile kullanıcı ara
                 user = await _userRepository.GetByEmailAsync(email.ToLower().Trim());
                 
                 if (user != null)
                 {
-                    // ✅ Normal kayıtlı kullanıcı - Google ID ve token'ları ekle
+                    // ✅ Normal kayıtlı kullanıcı - Google bilgilerini ekle
                     user.GoogleId = googleId;
                     user.GoogleAccessToken = _encryptionService.Encrypt(accessToken);
                     
@@ -495,8 +502,14 @@ namespace FormSepeti.Services.Implementations
                         user.GoogleRefreshToken = _encryptionService.Encrypt(refreshToken);
                     }
                     
+                    // ✅ PHOTO URL'İ EKLE
+                    if (!string.IsNullOrEmpty(photoUrl))
+                    {
+                        user.ProfilePhotoUrl = photoUrl;
+                    }
+                    
                     user.GoogleTokenExpiry = DateTime.UtcNow.AddHours(1);
-                    user.IsActivated = true; // Google ile giriş yaptıysa aktif et
+                    user.IsActivated = true;
                     user.LastLoginDate = DateTime.UtcNow;
                     
                     await _userRepository.UpdateAsync(user);
@@ -515,7 +528,8 @@ namespace FormSepeti.Services.Implementations
                         ? null 
                         : _encryptionService.Encrypt(refreshToken),
                     GoogleTokenExpiry = DateTime.UtcNow.AddHours(1),
-                    IsActivated = true, // ✅ Google ile kayıt olanlar otomatik aktif
+                    ProfilePhotoUrl = photoUrl, // ✅ EKLENDI
+                    IsActivated = true,
                     IsActive = true,
                     CreatedDate = DateTime.UtcNow,
                     LastLoginDate = DateTime.UtcNow,
@@ -523,11 +537,9 @@ namespace FormSepeti.Services.Implementations
                 };
                 
                 var createdUser = await _userRepository.CreateAsync(newUser);
-                
-                // Hoşgeldin emaili gönder
                 await _emailService.SendWelcomeEmailAsync(email, name);
                 
-                _logger.LogInformation($"✅ New Google user created: {email}");
+                _logger.LogInformation($"✅ New Google user created: {email} with photo: {photoUrl}");
                 
                 return createdUser;
             }

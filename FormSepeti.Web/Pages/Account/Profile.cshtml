@@ -5,211 +5,155 @@
     ViewData["Title"] = "Profil Ayarları";
 }
 
-<div class="row g-4 fade-in-up">
-    <!-- Page Header -->
-    <div class="col-12">
-        <h2 class="mb-3">
-            <i class="fas fa-user-circle text-primary me-2"></i>
-            Profil Ayarları
-        </h2>
-    </div>
-
-    <!-- Success/Error Messages -->
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div class="col-12">
-            <div class="alert alert-success alert-dismissible fade show">
-                <i class="fas fa-check-circle me-2"></i>
-                @Model.SuccessMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
-    }
-
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="col-12">
-            <div class="alert alert-danger alert-dismissible fade show">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                @Model.ErrorMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
-    }
-
-    <!-- Profile Info Card -->
-    <div class="col-lg-8">
-        <div class="card border-0 mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-id-card me-2 text-primary"></i>
-                    Hesap Bilgileri
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label text-light-muted">
-                            <i class="fas fa-envelope me-2"></i>Email
-                        </label>
-                        <input type="text" class="form-control" value="@Model.Email" readonly>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label text-light-muted">
-                            <i class="fas fa-phone me-2"></i>Telefon
-                        </label>
-                        <input type="text" class="form-control" value="@(Model.Phone ?? "Belirtilmemiş")" readonly>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label text-light-muted">
-                            <i class="fas fa-calendar-plus me-2"></i>Kayıt Tarihi
-                        </label>
-                        <input type="text" class="form-control" value="@Model.CreatedDate" readonly>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label text-light-muted">
-                            <i class="fas fa-sign-in-alt me-2"></i>Son Giriş
-                        </label>
-                        <input type="text" class="form-control" value="@Model.LastLoginDate" readonly>
-                    </div>
+<div class="container py-4">
+    <div class="row">
+        <!-- Profile Photo Section -->
+        <div class="col-lg-4">
+            <div class="card border-0 mb-4">
+                <div class="card-body text-center">
+                    @* Profile Photo *@
+                    @if (!string.IsNullOrEmpty(Model.ProfilePhotoUrl))
+                    {
+                        <img src="@Model.ProfilePhotoUrl" 
+                             alt="Profile" 
+                             class="rounded-circle mb-3" 
+                             width="150" 
+                             height="150"
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Photo';">
+                    }
+                    else
+                    {
+                        <div class="avatar-placeholder rounded-circle mx-auto mb-3" 
+                             style="width: 150px; height: 150px; background-color: #6366f1; color: white; font-size: 3rem; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                            @Model.Email?.Substring(0, 1).ToUpper()
+                        </div>
+                    }
+                    
+                    <h4 class="text-white">@Model.Email</h4>
+                    
+                    @if (Model.IsGoogleConnected)
+                    {
+                        <span class="badge bg-success">
+                            <i class="fab fa-google me-1"></i>Google Bağlı
+                        </span>
+                    }
                 </div>
             </div>
         </div>
-
-        <!-- Update Phone Card -->
-        <div class="card border-0 mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-edit me-2 text-success"></i>
-                    Telefon Numarası Güncelle
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="post" asp-page-handler="UpdatePhone">
-                    <div class="mb-3">
-                        <label for="NewPhone" class="form-label">Yeni Telefon Numarası</label>
-                        <input type="tel"
-                               class="form-control"
-                               id="NewPhone"
-                               asp-for="NewPhone"
-                               placeholder="5XX XXX XX XX"
-                               value="@Model.Phone">
-                    </div>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save me-2"></i>Güncelle
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Change Password Card -->
-        <div class="card border-0">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-lock me-2 text-warning"></i>
-                    Şifre Değiştir
-                </h5>
-            </div>
-            <div class="card-body">
-                <p class="text-light-muted mb-3">
-                    Şifrenizi değiştirmek için aşağıdaki butona tıklayın.
-                </p>
-                <a class="btn btn-warning" asp-page="/Account/ChangePassword">
-                    <i class="fas fa-key me-2"></i>Şifre Değiştir
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sidebar Stats -->
-    <aside class="col-lg-4">
-        <!-- Google Connection Status -->
-        <div class="card border-0 mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fab fa-google me-2"></i>
-                    Google Sheets
-                </h6>
-            </div>
-            <div class="card-body text-center">
-                @if (Model.IsGoogleConnected)
+        
+        <!-- Profile Info and Update Section -->
+        <div class="col-lg-8">
+            <div class="row g-4 fade-in-up">
+                <!-- Success/Error Messages -->
+                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
                 {
-                    <div class="mb-3">
-                        <i class="fas fa-check-circle fa-3x text-success"></i>
+                    <div class="col-12">
+                        <div class="alert alert-success alert-dismissible fade show">
+                            <i class="fas fa-check-circle me-2"></i>
+                            @Model.SuccessMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
                     </div>
-                    <h6 class="text-success mb-2">Bağlantı Aktif</h6>
-                    <p class="small text-light-muted mb-3">Google Sheets hesabınız bağlı</p>
-                    <a class="btn btn-outline-success btn-sm" asp-page="/Sheets/Connect">
-                        <i class="fas fa-cog me-1"></i>Yönet
-                    </a>
                 }
-                else
+
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                 {
-                    <div class="mb-3">
-                        <i class="fas fa-times-circle fa-3x text-danger"></i>
+                    <div class="col-12">
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            @Model.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
                     </div>
-                    <h6 class="text-danger mb-2">Bağlı Değil</h6>
-                    <p class="small text-light-muted mb-3">Google Sheets'i bağlayın</p>
-                    <a class="btn btn-danger btn-sm" asp-page="/Sheets/Connect">
-                        <i class="fab fa-google me-1"></i>Bağlan
-                    </a>
                 }
-            </div>
-        </div>
 
-        <!-- Quick Stats -->
-        <div class="card border-0 mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-chart-line me-2 text-info"></i>
-                    İstatistikler
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-3 pb-3 border-bottom border-secondary">
-                    <div>
-                        <i class="fas fa-paper-plane text-primary me-2"></i>
-                        <span class="text-light-muted">Toplam Gönderim</span>
-                    </div>
-                    <strong class="text-white">@Model.TotalSubmissions</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <i class="fas fa-box text-success me-2"></i>
-                        <span class="text-light-muted">Aktif Paketler</span>
-                    </div>
-                    <strong class="text-white">@Model.ActivePackages</strong>
-                </div>
-            </div>
-        </div>
+                <!-- Profile Info Card -->
+                <div class="col-12">
+                    <div class="card border-0 mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-id-card me-2 text-primary"></i>
+                                Hesap Bilgileri
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-light-muted">
+                                        <i class="fas fa-envelope me-2"></i>Email
+                                    </label>
+                                    <input type="text" class="form-control" value="@Model.Email" readonly>
+                                </div>
 
-        <!-- Quick Actions -->
-        <div class="card border-0">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-bolt me-2 text-warning"></i>
-                    Hızlı İşlemler
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action" asp-page="/Dashboard/Index">
-                        <i class="fas fa-home text-primary me-2"></i>
-                        Dashboard
-                    </a>
-                    <a class="list-group-item list-group-item-action" asp-page="/Package/Index">
-                        <i class="fas fa-shopping-cart text-success me-2"></i>
-                        Paket Satın Al
-                    </a>
-                    <a class="list-group-item list-group-item-action" asp-page="/Account/Logout">
-                        <i class="fas fa-sign-out-alt text-danger me-2"></i>
-                        Çıkış Yap
-                    </a>
+                                <div class="col-md-6">
+                                    <label class="form-label text-light-muted">
+                                        <i class="fas fa-phone me-2"></i>Telefon
+                                    </label>
+                                    <input type="text" class="form-control" value="@(Model.Phone ?? "Belirtilmemiş")" readonly>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label text-light-muted">
+                                        <i class="fas fa-calendar-plus me-2"></i>Kayıt Tarihi
+                                    </label>
+                                    <input type="text" class="form-control" value="@Model.CreatedDate" readonly>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label text-light-muted">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Son Giriş
+                                    </label>
+                                    <input type="text" class="form-control" value="@Model.LastLoginDate" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Update Phone Card -->
+                    <div class="card border-0 mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-edit me-2 text-success"></i>
+                                Telefon Numarası Güncelle
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" asp-page-handler="UpdatePhone">
+                                <div class="mb-3">
+                                    <label for="NewPhone" class="form-label">Yeni Telefon Numarası</label>
+                                    <input type="tel"
+                                           class="form-control"
+                                           id="NewPhone"
+                                           asp-for="NewPhone"
+                                           placeholder="5XX XXX XX XX"
+                                           value="@Model.Phone">
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>Güncelle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Change Password Card -->
+                    <div class="card border-0">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-lock me-2 text-warning"></i>
+                                Şifre Değiştir
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-light-muted mb-3">
+                                Şifrenizi değiştirmek için aşağıdaki butona tıklayın.
+                            </p>
+                            <a class="btn btn-warning" asp-page="/Account/ChangePassword">
+                                <i class="fas fa-key me-2"></i>Şifre Değiştir
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </aside>
+    </div>
 </div>

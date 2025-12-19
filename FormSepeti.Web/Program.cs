@@ -69,13 +69,18 @@ builder.Services.AddAuthentication(options =>
         ?? throw new InvalidOperationException("Google ClientSecret is missing");
     options.CallbackPath = "/signin-google";
     
+    // ✅ SCOPELARI EKLE
     options.Scope.Add("https://www.googleapis.com/auth/spreadsheets");
     options.Scope.Add("https://www.googleapis.com/auth/drive.file");
     options.Scope.Add("email");
-    options.Scope.Add("profile");
+    options.Scope.Add("profile"); // ✅ Profil bilgisi için (zaten var muhtemelen)
     
     options.AccessType = "offline";
     options.SaveTokens = true;
+    
+    // ✅ CLAIMS'E PHOTO URL EKLE
+    options.ClaimActions.MapJsonKey("urn:google:picture", "picture");
+    options.ClaimActions.MapJsonKey("urn:google:name", "name");
     
     options.Events.OnCreatingTicket = context =>
     {

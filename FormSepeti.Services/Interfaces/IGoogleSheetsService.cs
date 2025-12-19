@@ -13,5 +13,7 @@ namespace FormSepeti.Services.Interfaces
         Task<int> AppendFormDataToSheet(int userId, int groupId, string formName, Dictionary<string, string> formData);
         Task<bool> RefreshAccessToken(int userId);
         Task<UserGoogleSheet> GetUserGoogleSheetAsync(int userId, int groupId);
+        Task<List<UserGoogleSheet>> GetUserSheetsAsync(int userId);
+        Task<bool> TestConnectionAsync(int userId);
     }
 }

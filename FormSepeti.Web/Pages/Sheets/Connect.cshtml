@@ -5,19 +5,80 @@
     ViewData["Title"] = "Google Sheets Bağlantısı";
 }
 
+<!-- ✅ TempData Notification System -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        @TempData["Warning"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        @TempData["Info"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <div class="row g-4 fade-in-up">
     <div class="col-12">
-        <h2 class="mb-3">
-            <i class="fab fa-google me-2 text-success"></i>
-            Google Sheets Bağlantısı
-        </h2>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <i class="fab fa-google me-2 text-success"></i>
+                Google Sheets Bağlantısı
+            </h2>
+            
+            <!-- ✅ Status Badge -->
+            @switch (Model.ConnectionStatus)
+            {
+                case "connected":
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-check-circle me-1"></i>Bağlı
+                    </span>
+                    break;
+                case "expired":
+                    <span class="badge bg-warning fs-6">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Süresi Dolmuş
+                    </span>
+                    break;
+                case "needs_permissions":
+                    <span class="badge bg-info fs-6">
+                        <i class="fas fa-info-circle me-1"></i>İzin Gerekli
+                    </span>
+                    break;
+                default:
+                    <span class="badge bg-secondary fs-6">
+                        <i class="fas fa-unlink me-1"></i>Bağlı Değil
+                    </span>
+                    break;
+            }
+        </div>
     </div>
 
-    @if (Model.IsAlreadyConnected)
+    @if (Model.IsAlreadyConnected && Model.ConnectionStatus == "connected")
     {
-        <!-- ✅ ZATEN BAĞLI -->
+        <!-- ✅ BAĞLI DURUM - Detaylı Bilgi -->
         <div class="col-lg-8">
-            <div class="card border-0">
+            <div class="card border-0 shadow-sm">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-check-circle me-2"></i>
@@ -25,32 +86,88 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-success mb-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Google Sheets hesabınız başarıyla bağlandı!
+                    <!-- ✅ Bağlantı Bilgileri -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <label class="text-muted small">Bağlı Hesap</label>
+                                <p class="h6 mb-0">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i>
+                                    @Model.UserEmail
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <label class="text-muted small">Aktif Sheets</label>
+                                <p class="h6 mb-0">
+                                    <i class="fas fa-file-spreadsheet me-2 text-success"></i>
+                                    @Model.ActiveSheetsCount dosya
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <p class="text-light-secondary mb-3">
-                        <strong>Email:</strong> @Model.UserEmail
-                    </p>
 
-                    <div class="d-flex gap-3">
+                    @if (Model.LastConnectionDate.HasValue)
+                    {
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Son Bağlantı:</strong> @Model.LastConnectionDate.Value.ToString("dd MMMM yyyy")
+                        </div>
+                    }
+
+                    <!-- ✅ Aksiyon Butonları -->
+                    <div class="d-flex gap-2 flex-wrap">
                         <a class="btn btn-primary" asp-page="/Dashboard/Index">
-                            <i class="fas fa-home me-2"></i>Dashboard'a Dön
+                            <i class="fas fa-home me-2"></i>Dashboard
                         </a>
-                        
-                        <form method="post" asp-page-handler="Disconnect" onsubmit="return confirm('Google Sheets bağlantısını kaldırmak istediğinize emin misiniz?');">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-unlink me-2"></i>Bağlantıyı Kaldır
-                            </button>
-                        </form>
+
+                        <!-- ✅ Test Connection Button -->
+                        <button type="button" class="btn btn-info" id="testConnectionBtn">
+                            <i class="fas fa-vial me-2"></i>Bağlantıyı Test Et
+                        </button>
+
+                        <!-- ✅ Disconnect Button -->
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#disconnectModal">
+                            <i class="fas fa-unlink me-2"></i>Bağlantıyı Kaldır
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- ✅ Bilgilendirme Kartları -->
         <div class="col-lg-4">
-            <div class="card border-0">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2 text-warning"></i>
+                        Özellikler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0 small">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Otomatik veri kaydetme
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Gerçek zamanlı senkronizasyon
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Grup bazlı organizasyon
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Güvenli şifreleme
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
                 <div class="card-header">
                     <h6 class="mb-0">
                         <i class="fas fa-shield-alt me-2 text-info"></i>
@@ -58,9 +175,9 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <p class="small text-light-muted mb-0">
-                        Google hesabınıza verdiğiniz erişim, sadece Google Sheets dosyalarınızı oluşturmak ve düzenlemek için kullanılır. 
-                        Hiçbir kişisel bilginiz saklanmaz.
+                    <p class="small text-muted mb-0">
+                        Token'larınız AES-256 ile şifrelenir. 
+                        Verileriniz yalnızca Google Sheets oluşturmak için kullanılır.
                     </p>
                 </div>
             </div>
@@ -68,9 +185,9 @@
     }
     else
     {
-        <!-- ✅ HENÜZ BAĞLANMAMIŞ -->
+        <!-- ✅ BAĞLANTI GEREKLİ DURUM -->
         <div class="col-lg-8">
-            <div class="card border-0">
+            <div class="card border-0 shadow-sm">
                 <div class="card-header">
                     <h5 class="mb-0">
                         <i class="fas fa-plug me-2"></i>
@@ -80,41 +197,115 @@
                 <div class="card-body">
                     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                     {
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger alert-dismissible fade show">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             @Model.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     }
 
-                    <p class="text-light-secondary mb-4">
-                        JotForm'lardan gelen verileri otomatik olarak Google Sheets'e kaydetmek için Google hesabınızı bağlamanız gerekiyor.
+                    <!-- ✅ Durum Bazlı Mesajlar -->
+                    @if (Model.IsGoogleLogin && Model.ConnectionStatus == "needs_permissions")
+                    {
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Ek İzin Gerekiyor
+                            </h6>
+                            <p class="mb-0 small">
+                                Google ile giriş yaptınız ancak form verilerini Google Sheets'e kaydetmek için 
+                                <strong>Google Sheets ve Drive izinleri</strong> vermeniz gerekiyor.
+                            </p>
+                        </div>
+                    }
+                    else if (Model.ConnectionStatus == "expired")
+                    {
+                        <div class="alert alert-danger">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-clock me-2"></i>
+                                Token Süresi Dolmuş
+                            </h6>
+                            <p class="mb-0 small">
+                                Google Sheets bağlantınızın süresi dolmuş. Lütfen yeniden bağlanın.
+                            </p>
+                        </div>
+                    }
+
+                    <p class="text-muted mb-4">
+                        JotForm'lardan gelen verileri otomatik olarak Google Sheets'e kaydetmek için 
+                        Google hesabınızı bağlamanız gerekiyor.
                     </p>
 
-                    <div class="bg-dark-subtle p-3 rounded mb-4">
-                        <h6 class="text-light mb-3">
-                            <i class="fas fa-list-check me-2 text-primary"></i>
-                            Bağlantı Adımları:
-                        </h6>
-                        <ol class="text-light-secondary mb-0">
-                            <li>Aşağıdaki butona tıklayın</li>
-                            <li>Google hesabınızla giriş yapın</li>
-                            <li>İzinleri onaylayın</li>
-                            <li>Otomatik olarak geri yönlendirileceksiniz</li>
-                        </ol>
+                    <!-- ✅ Adım Adım Rehber -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h6 class="mb-3">
+                                <i class="fas fa-list-check me-2 text-primary"></i>
+                                Bağlantı Adımları
+                            </h6>
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-badge bg-primary">1</div>
+                                    <div class="timeline-content">
+                                        <p class="mb-0">Aşağıdaki butona tıklayın</p>
+                                    </div>
+                                </div>
+                                @if (!Model.IsGoogleLogin)
+                                {
+                                    <div class="timeline-item">
+                                        <div class="timeline-badge bg-primary">2</div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0">Google hesabınızla giriş yapın</p>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="timeline-item">
+                                    <div class="timeline-badge bg-primary">@(Model.IsGoogleLogin ? "2" : "3")</div>
+                                    <div class="timeline-content">
+                                        <p class="mb-0">İzinleri onaylayın</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-badge bg-success">✓</div>
+                                    <div class="timeline-content">
+                                        <p class="mb-0">Otomatik yönlendirileceksiniz</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <form method="post">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fab fa-google me-2"></i>
-                            Google ile Bağlan
+                    <!-- ✅ Connect Button with Loading State -->
+                    <form method="post" id="connectForm">
+                        <button type="submit" class="btn btn-success btn-lg" id="connectBtn">
+                            <span class="button-content">
+                                <i class="fab fa-google me-2"></i>
+                                @if (Model.IsGoogleLogin)
+                                {
+                                    <text>Sheets İzni Ver</text>
+                                }
+                                else if (Model.ConnectionStatus == "expired")
+                                {
+                                    <text>Yeniden Bağlan</text>
+                                }
+                                else
+                                {
+                                    <text>Google ile Bağlan</text>
+                                }
+                            </span>
+                            <span class="button-loading d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                Yönlendiriliyor...
+                            </span>
                         </button>
                     </form>
                 </div>
             </div>
         </div>
 
+        <!-- ✅ Bilgi Kartları -->
         <div class="col-lg-4">
-            <div class="card border-0">
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header">
                     <h6 class="mb-0">
                         <i class="fas fa-question-circle me-2 text-warning"></i>
@@ -122,26 +313,203 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <ul class="list-unstyled mb-0">
+                    <ul class="list-unstyled mb-0 small">
                         <li class="mb-2">
                             <i class="fas fa-check text-success me-2"></i>
-                            <span class="text-light-secondary">Otomatik Google Sheets oluşturma</span>
+                            Otomatik Sheets oluşturma
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-check text-success me-2"></i>
-                            <span class="text-light-secondary">Form verilerini anlık kaydetme</span>
+                            Anlık veri kaydetme
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-check text-success me-2"></i>
-                            <span class="text-light-secondary">Grup bazlı dosya organizasyonu</span>
+                            Grup organizasyonu
                         </li>
                         <li class="mb-0">
                             <i class="fas fa-check text-success me-2"></i>
-                            <span class="text-light-secondary">Güvenli token yönetimi</span>
+                            Güvenli yönetim
                         </li>
                     </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-key me-2 text-primary"></i>
+                        Gerekli İzinler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="permission-item mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-table fa-2x text-success me-3"></i>
+                            <div>
+                                <strong class="d-block">Google Sheets</strong>
+                                <small class="text-muted">Dosya oluştur ve düzenle</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="permission-item">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-folder fa-2x text-success me-3"></i>
+                            <div>
+                                <strong class="d-block">Google Drive</strong>
+                                <small class="text-muted">Dosya yönetimi</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     }
 </div>
+
+<!-- ✅ Disconnect Confirmation Modal -->
+<div class="modal fade" id="disconnectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Bağlantıyı Kaldır
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Google Sheets bağlantısını kaldırmak istediğinize emin misiniz?</p>
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Uyarı:</strong> Formlardan gelen yeni veriler artık Google Sheets'e kaydedilmeyecek.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form method="post" asp-page-handler="Disconnect" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-unlink me-2"></i>Evet, Kaldır
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ✅ Connect Form Loading State
+        document.getElementById('connectForm')?.addEventListener('submit', function() {
+            const btn = document.getElementById('connectBtn');
+            btn.disabled = true;
+            btn.querySelector('.button-content').classList.add('d-none');
+            btn.querySelector('.button-loading').classList.remove('d-none');
+        });
+
+        // ✅ Test Connection AJAX
+        document.getElementById('testConnectionBtn')?.addEventListener('click', async function() {
+            const btn = this;
+            const originalHTML = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Test ediliyor...';
+            
+            try {
+                const response = await fetch('?handler=TestConnection', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Bağlantı OK!';
+                    btn.classList.remove('btn-info');
+                    btn.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    btn.innerHTML = '<i class="fas fa-times me-2"></i>Başarısız';
+                    btn.classList.remove('btn-info');
+                    btn.classList.add('btn-danger');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-info');
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Test failed:', error);
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        });
+
+        // ✅ Auto-dismiss alerts after 5 seconds
+        document.querySelectorAll('.alert-dismissible').forEach(alert => {
+            setTimeout(() => {
+                const closeBtn = alert.querySelector('.btn-close');
+                closeBtn?.click();
+            }, 5000);
+        });
+    </script>
+}
+
+<style>
+    .info-card {
+        padding: 1rem;
+        background: rgba(99, 102, 241, 0.05);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+
+    .timeline-item:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: -19px;
+        top: 30px;
+        width: 2px;
+        height: calc(100% - 10px);
+        background: #dee2e6;
+    }
+
+    .timeline-badge {
+        position: absolute;
+        left: -30px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
+
+    .permission-item {
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .permission-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+</style>

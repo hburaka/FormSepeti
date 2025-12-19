@@ -18,5 +18,6 @@ namespace FormSepeti.Data.Entities
         public DateTime? LastLoginDate { get; set; }
         public bool IsActive { get; set; }
         public string? GoogleId { get; set; } // ✅ Nullable yap
+        public string? ProfilePhotoUrl { get; set; }
     }
 }

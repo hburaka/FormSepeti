@@ -41,9 +41,7 @@ namespace FormSepeti.Web.Controllers
         {
             try
             {
-                // Google'dan gelen authentication bilgilerini al
-                var authenticateResult = await HttpContext.AuthenticateAsync(
-                    GoogleDefaults.AuthenticationScheme);
+                var authenticateResult = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
                 
                 if (!authenticateResult.Succeeded)
                 {
@@ -52,17 +50,20 @@ namespace FormSepeti.Web.Controllers
                     return RedirectToPage("/Account/Login");
                 }
                 
-                // Google bilgilerini çek
+                // ✅ Google bilgilerini çek
                 var googleId = authenticateResult.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var email = authenticateResult.Principal.FindFirst(ClaimTypes.Email)?.Value;
                 var name = authenticateResult.Principal.FindFirst(ClaimTypes.Name)?.Value;
+                
+                // ✅ PROFIL FOTOĞRAFINI ÇEK
+                var photoUrl = authenticateResult.Principal.FindFirst("urn:google:picture")?.Value;
+                
+                _logger.LogInformation($"📸 Google photo URL: {photoUrl}");
                 
                 // Token'ları al
                 var tokens = authenticateResult.Properties.GetTokens();
                 var accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
                 var refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
-                
-                _logger.LogInformation($"Google callback - GoogleId: {googleId}, Email: {email}, HasRefreshToken: {!string.IsNullOrEmpty(refreshToken)}");
                 
                 if (string.IsNullOrEmpty(googleId) || string.IsNullOrEmpty(email))
                 {
@@ -78,13 +79,14 @@ namespace FormSepeti.Web.Controllers
                     return RedirectToPage("/Account/Login");
                 }
                 
-                // Kullanıcıyı oluştur veya güncelle
+                // ✅ Kullanıcıyı oluştur veya güncelle (PHOTO URL İLE)
                 var user = await _userService.GetOrCreateGoogleUserAsync(
                     googleId, 
                     email, 
                     name ?? email.Split('@')[0], 
                     accessToken, 
-                    refreshToken);
+                    refreshToken,
+                    photoUrl); // ✅ EKLENDI
                 
                 if (user == null)
                 {
@@ -97,23 +99,25 @@ namespace FormSepeti.Web.Controllers
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Email, user.Email ?? ""),
                     new Claim("UserId", user.UserId.ToString()),
-                    new Claim("Email", user.Email),
+                    new Claim("Email", user.Email ?? ""),
                     new Claim("LoginProvider", "Google")
                 };
                 
-                var claimsIdentity = new ClaimsIdentity(
-                    claims, 
-                    CookieAuthenticationDefaults.AuthenticationScheme);
+                // ✅ PHOTO URL'İ CLAIM OLARAK EKLE (view'larda kullanmak için)
+                if (!string.IsNullOrEmpty(user.ProfilePhotoUrl))
+                {
+                    claims.Add(new Claim("ProfilePhotoUrl", user.ProfilePhotoUrl));
+                }
                 
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = true,
                     ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
                 };
                 
-                // Kullanıcıyı login et
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     new ClaimsPrincipal(claimsIdentity),
@@ -121,7 +125,6 @@ namespace FormSepeti.Web.Controllers
                 
                 _logger.LogInformation($"✅ User logged in via Google: {email}");
                 
-                // Return URL'e yönlendir veya Dashboard'a git
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
                     return Redirect(returnUrl);
