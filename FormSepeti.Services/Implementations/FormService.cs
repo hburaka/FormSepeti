@@ -35,13 +35,17 @@ namespace FormSepeti.Services.Implementations
             foreach (var mapping in mappings)
             {
                 var accessInfo = await _packageService.GetUserAccessToFormAsync(userId, mapping.FormId, groupId);
+                
+                // ✅ Gönderim sayısını al
+                var submissions = await _submissionRepository.GetByUserAndFormIdAsync(userId, mapping.FormId);
 
                 result.Add(new FormWithAccessInfo
                 {
                     Form = mapping.Form,
                     HasAccess = accessInfo.HasAccess,
                     IsFree = accessInfo.IsFree,
-                    RequiresPackage = accessInfo.RequiresPackage
+                    RequiresPackage = accessInfo.RequiresPackage,
+                    SubmissionCount = submissions.Count // ✅ Gönderim sayısı eklendi
                 });
             }
 

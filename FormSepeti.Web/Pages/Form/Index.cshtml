@@ -150,12 +150,14 @@
                                 <div class="d-grid gap-2">
                                     @if (f.HasAccess)
                                     {
-                                        <a class="btn btn-primary" 
-                                           asp-page="/Form/View" 
-                                           asp-route-formId="@f.Id" 
-                                           asp-route-groupId="@Model.GroupId">
-                                            <i class="bi bi-pencil-square me-2"></i>Formu Doldur
-                                        </a>
+                                        @* ✅ SESSION-BASED: Form kullanarak POST ile session'a kaydet *@
+                                        <form method="post" asp-page-handler="SetActiveForm">
+                                            <input type="hidden" name="formId" value="@f.Id" />
+                                            <input type="hidden" name="groupId" value="@Model.GroupId" />
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="bi bi-pencil-square me-2"></i>Formu Doldur
+                                            </button>
+                                        </form>
                                         
                                         @if (f.SubmissionCount > 0)
                                         {

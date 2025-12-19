@@ -33,9 +33,10 @@ namespace FormSepeti.Web.Pages.Package
         public Data.Entities.Package Package { get; set; }
         public FormGroup FormGroup { get; set; }
         public List<FormGroupMapping> FormsInPackage { get; set; } = new();
-        public bool UserHasThisPackage { get; set; }
+        public bool? UserHasThisPackage { get; set; } // ? Nullable yapýldý (login deðilse null)
         public int TotalForms { get; set; }
         public int FreeForms { get; set; }
+        public bool IsUserLoggedIn { get; set; } // ? Login durumu
 
         private int GetUserId()
         {
@@ -62,15 +63,12 @@ namespace FormSepeti.Web.Pages.Package
         public async Task<IActionResult> OnGetAsync(int id)
         {
             var userId = GetUserId();
+            IsUserLoggedIn = userId > 0;
             
-            _logger.LogInformation($"PackageDetail - UserId: {userId}, PackageId: {id}");
-            
-            if (userId == 0)
-            {
-                _logger.LogWarning("PackageDetail - User not authenticated, redirecting to login");
-                return RedirectToPage("/Account/Login");
-            }
+            _logger.LogInformation($"PackageDetail - UserId: {userId}, PackageId: {id}, IsLoggedIn: {IsUserLoggedIn}");
 
+            // ? Login kontrolü kaldýrýldý - herkes görebilsin
+            
             // Paket bilgilerini al
             Package = await _packageService.GetPackageByIdAsync(id);
             if (Package == null)
@@ -89,10 +87,16 @@ namespace FormSepeti.Web.Pages.Package
             TotalForms = FormsInPackage.Count;
             FreeForms = FormsInPackage.Count(f => f.IsFreeInGroup && !f.RequiresPackage);
 
-            // ? Kullanýcýnýn bu pakete sahip olup olmadýðýný kontrol et
-            UserHasThisPackage = await _packageService.HasActivePackageForGroupAsync(userId, Package.GroupId);
-
-            _logger.LogInformation($"PackageDetail - UserHasThisPackage: {UserHasThisPackage}, GroupId: {Package.GroupId}");
+            // ? Kullanýcýnýn bu pakete sahip olup olmadýðýný kontrol et (sadece login ise)
+            if (IsUserLoggedIn)
+            {
+                UserHasThisPackage = await _packageService.HasActivePackageForGroupAsync(userId, Package.GroupId);
+                _logger.LogInformation($"PackageDetail - UserHasThisPackage: {UserHasThisPackage}, GroupId: {Package.GroupId}");
+            }
+            else
+            {
+                UserHasThisPackage = null; // Login deðilse null
+            }
 
             return Page();
         }

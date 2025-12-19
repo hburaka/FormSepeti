@@ -1,89 +1,107 @@
+// FormSepeti.Web\Pages\Form\Index.cshtml.cs
+using FormSepeti.Data.Repositories.Interfaces;
+using FormSepeti.Services.Interfaces;
+using FormSepeti.Services.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using FormSepeti.Services.Interfaces;
-using FormSepeti.Data.Repositories.Interfaces;
 
 namespace FormSepeti.Web.Pages.Form
 {
     public class IndexModel : PageModel
     {
         private readonly IFormService _formService;
-        private readonly IFormGroupRepository _groupRepo;
-        private readonly IFormSubmissionRepository _submissionRepo;
         private readonly IPackageService _packageService;
+        private readonly IGoogleSheetsService _googleSheetsService;
+        private readonly IFormGroupRepository _formGroupRepository;
 
         public IndexModel(
-            IFormService formService, 
-            IFormGroupRepository groupRepo,
-            IFormSubmissionRepository submissionRepo,
-            IPackageService packageService)
+            IFormService formService,
+            IPackageService packageService,
+            IGoogleSheetsService googleSheetsService,
+            IFormGroupRepository formGroupRepository)
         {
             _formService = formService;
-            _groupRepo = groupRepo;
-            _submissionRepo = submissionRepo;
             _packageService = packageService;
+            _googleSheetsService = googleSheetsService;
+            _formGroupRepository = formGroupRepository;
         }
 
-        [BindProperty(SupportsGet = true)] public int? GroupId { get; set; }
-        public string GroupName { get; private set; } = "Grup";
-        public List<FormItemViewModel> Forms { get; private set; } = new();
-        public string SpreadsheetUrl { get; private set; } = "";
+        [BindProperty(SupportsGet = true)]
+        public int? GroupId { get; set; }
 
-        // ? Form item view model
-        public class FormItemViewModel
-        {
-            public int Id { get; set; }
-            public string Title { get; set; }
-            public string Description { get; set; }
-            public bool IsPaid { get; set; }
-            public int SubmissionCount { get; set; }
-            public bool HasAccess { get; set; }  // ? Eriþim kontrolü
-            public bool IsFree { get; set; }      // ? Ücretsiz mi?
-        }
+        public string GroupName { get; set; } = string.Empty;
+        public string SpreadsheetUrl { get; set; } = string.Empty;
+        public List<FormWithAccessInfo> Forms { get; set; } = new();
 
-        public async Task<IActionResult> OnGetAsync(int? groupId)
+        private int GetCurrentUserId() =>
+            int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
+
+        public async Task<IActionResult> OnGetAsync()
         {
-            GroupId = groupId ?? GroupId;
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
             if (!GroupId.HasValue)
             {
-                TempData["Warning"] = "Grup belirtilmedi.";
+                TempData["Warning"] = "Lütfen önce bir grup seçin.";
                 return RedirectToPage("/Dashboard/SelectGroup");
             }
 
-            var group = await _groupRepo.GetByIdAsync(GroupId.Value);
-            if (group == null) return NotFound();
+            var group = await _formGroupRepository.GetByIdAsync(GroupId.Value);
+            if (group == null)
+            {
+                return RedirectToPage("/Dashboard/SelectGroup");
+            }
 
             GroupName = group.GroupName;
 
-            // ? UserId'yi al
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("UserId")?.Value ?? "0");
+            // ? Formlarý getir (artýk SubmissionCount dahil)
+            Forms = await _formService.GetFormsByGroupIdAsync(userId, GroupId.Value);
 
-            var formsWithAccess = await _formService.GetFormsByGroupIdAsync(userId, GroupId.Value);
-            Forms = new List<FormItemViewModel>();
-            
-            foreach (var f in formsWithAccess)
+            // Google Sheets URL'ini al
+            try
             {
-                // ? Her form için gönderim sayýsýný al
-                var submissions = await _submissionRepo.GetByUserAndFormIdAsync(userId, f.Form.FormId);
-                var submissionCount = submissions.Count;
-                
-                Forms.Add(new FormItemViewModel
-                {
-                    Id = f.Form.FormId,
-                    Title = f.Form.FormName,
-                    Description = f.Form.FormDescription ?? "",
-                    IsPaid = !f.IsFree,  // ? Ücretsizse IsPaid=false
-                    SubmissionCount = submissionCount,
-                    HasAccess = f.HasAccess,  // ? Eriþim var mý?
-                    IsFree = f.IsFree          // ? Ücretsiz mi?
-                });
+                var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(userId, GroupId.Value);
+                SpreadsheetUrl = userSheet?.SpreadsheetUrl ?? string.Empty;
+            }
+            catch
+            {
+                SpreadsheetUrl = string.Empty;
             }
 
             return Page();
+        }
+
+        // ? Session'a kaydet ve yönlendir
+        public async Task<IActionResult> OnPostSetActiveFormAsync(int formId, int groupId)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            // ? Eriþim kontrolü
+            var accessInfo = await _packageService.GetUserAccessToFormAsync(userId, formId, groupId);
+            if (!accessInfo.HasAccess)
+            {
+                TempData["Error"] = "Bu forma eriþim yetkiniz yok.";
+                return RedirectToPage("/Package/Index");
+            }
+
+            // ? Session'a kaydet
+            HttpContext.Session.SetInt32("ActiveFormId", formId);
+            HttpContext.Session.SetInt32("ActiveGroupId", groupId);
+
+            // ? View sayfasýna yönlendir (parametre YOK!)
+            return RedirectToPage("/Form/View");
         }
     }
 }

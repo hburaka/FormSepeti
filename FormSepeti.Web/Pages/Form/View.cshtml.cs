@@ -39,11 +39,9 @@ namespace FormSepeti.Web.Pages.Form
             _logger = logger;
         }
 
-        [BindProperty(SupportsGet = true)] 
+        // ✅ Artık BindProperty yok - Session'dan gelecek
         public int FormId { get; set; }
-        
-        [BindProperty(SupportsGet = true)] 
-        public int? GroupId { get; set; }
+        public int GroupId { get; set; }
         
         public int UserId { get; set; }
         public string UserEmail { get; set; } = string.Empty;
@@ -68,26 +66,32 @@ namespace FormSepeti.Web.Pages.Form
         private int GetCurrentUserId() =>
             int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
 
-        // ✅ PROJE STANDARDINA UYGUN: Query string ile id parametresi
-        public async Task<IActionResult> OnGetAsync(int? groupId = null)
+        // ✅ SESSION-BASED: Parametresiz, session'dan oku
+        public async Task<IActionResult> OnGetAsync()
         {
-            // ✅ FormId otomatik olarak [BindProperty(SupportsGet = true)] ile query string'den gelecek
-            // URL: /Form/View?id=16&groupId=5
-            
-            if (FormId == 0)
+            // ✅ 1. Session'dan oku
+            var formId = HttpContext.Session.GetInt32("ActiveFormId");
+            var groupId = HttpContext.Session.GetInt32("ActiveGroupId");
+
+            if (!formId.HasValue || !groupId.HasValue)
             {
-                _logger.LogWarning("FormId is 0 or missing");
-                return NotFound();
+                _logger.LogWarning("No active form in session");
+                TempData["Error"] = "Lütfen önce bir form seçin.";
+                return RedirectToPage("/Dashboard/Index");
             }
 
+            FormId = formId.Value;
+            GroupId = groupId.Value;
+
+            // ✅ 2. Authentication
             UserId = GetCurrentUserId();
             if (UserId == 0)
             {
-                _logger.LogWarning("User not authenticated, redirecting to login");
+                _logger.LogWarning("User not authenticated");
                 return RedirectToPage("/Account/Login");
             }
 
-            // ✅ Kullanıcı bilgilerini al
+            // ✅ 3. Kullanıcı bilgilerini al
             var user = await _userService.GetUserByIdAsync(UserId);
             if (user == null)
             {
@@ -97,7 +101,7 @@ namespace FormSepeti.Web.Pages.Form
             
             UserEmail = user.Email ?? string.Empty;
 
-            // ✅ Google bağlı mı kontrol et
+            // ✅ 4. Google bağlı mı kontrol et
             var isGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
             if (!isGoogleConnected)
             {
@@ -105,43 +109,24 @@ namespace FormSepeti.Web.Pages.Form
                 return RedirectToPage("/Sheets/Connect");
             }
 
+            // ✅ 5. Authorization
             var form = await _formService.GetFormByIdAsync(FormId);
-            if (form == null)
+            var accessInfo = await _packageService.GetUserAccessToFormAsync(UserId, FormId, GroupId);
+            
+            if (form == null || !accessInfo.HasAccess)
             {
-                _logger.LogWarning($"Form not found: FormId={FormId}");
-                return NotFound();
+                _logger.LogWarning($"⚠️ Access denied: UserId={UserId}, FormId={FormId}, IP={HttpContext.Connection.RemoteIpAddress}");
+                
+                // ✅ Session'ı temizle
+                HttpContext.Session.Remove("ActiveFormId");
+                HttpContext.Session.Remove("ActiveGroupId");
+                
+                TempData["Error"] = "Bu forma erişim yetkiniz yok.";
+                return RedirectToPage("/Package/Index");
             }
 
             FormTitle = form.FormName;
             JotFormId = form.JotFormId;
-
-            // GroupId'yi belirle
-            int actualGroupId;
-
-            if (groupId.HasValue)
-            {
-                actualGroupId = groupId.Value;
-                _logger.LogInformation($"GroupId from URL parameter: {actualGroupId}");
-            }
-            else
-            {
-                actualGroupId = await _formService.GetFormGroupIdAsync(FormId);
-                _logger.LogInformation($"GroupId from FormGroupMapping: {actualGroupId} for FormId={FormId}");
-            }
-
-            GroupId = actualGroupId;
-
-            // ✅ ERİŞİM KONTROLÜ
-            var accessInfo = await _packageService.GetUserAccessToFormAsync(UserId, FormId, actualGroupId);
-            
-            if (!accessInfo.HasAccess)
-            {
-                _logger.LogWarning($"❌ Access denied! UserId={UserId}, FormId={FormId}, GroupId={actualGroupId}");
-                _logger.LogWarning($"   IsFree={accessInfo.IsFree}, RequiresPackage={accessInfo.RequiresPackage}");
-                
-                TempData["Error"] = "Bu forma erişim yetkiniz yok. Lütfen paketi satın alın.";
-                return RedirectToPage("/Package/Index");
-            }
 
             _logger.LogInformation($"✅ Access granted! UserId={UserId}, FormId={FormId}, IsFree={accessInfo.IsFree}");
 
@@ -187,19 +172,19 @@ namespace FormSepeti.Web.Pages.Form
 
             try
             {
-                var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(UserId, actualGroupId);
+                var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(UserId, GroupId);
                 
                 // ✅ Sheet yoksa oluştur
                 if (userSheet == null)
                 {
-                    _logger.LogWarning($"No Google Sheet found for UserId={UserId}, GroupId={actualGroupId}. Creating new spreadsheet...");
+                    _logger.LogWarning($"No Google Sheet found for UserId={UserId}, GroupId={GroupId}. Creating new spreadsheet...");
                     
-                    var group = await _formGroupRepository.GetByIdAsync(actualGroupId);
+                    var group = await _formGroupRepository.GetByIdAsync(GroupId);
                     if (group != null)
                     {
                         var newSheetUrl = await _googleSheetsService.CreateSpreadsheetForUserGroup(
                             UserId, 
-                            actualGroupId, 
+                            GroupId, 
                             group.GroupName
                         );
                         
@@ -210,7 +195,7 @@ namespace FormSepeti.Web.Pages.Form
                         }
                         else
                         {
-                            _logger.LogError($"Failed to create Google Spreadsheet for UserId={UserId}, GroupId={actualGroupId}");
+                            _logger.LogError($"Failed to create Google Spreadsheet for UserId={UserId}, GroupId={GroupId}");
                         }
                     }
                 }
@@ -222,13 +207,13 @@ namespace FormSepeti.Web.Pages.Form
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error handling Google Sheet for UserId={UserId}, GroupId={actualGroupId}");
+                _logger.LogError(ex, $"Error handling Google Sheet for UserId={UserId}, GroupId={GroupId}");
             }
 
             if (!string.IsNullOrWhiteSpace(JotFormId))
             {
                 var encodedEmail = System.Web.HttpUtility.UrlEncode(UserEmail);
-                JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={actualGroupId}&userEmail={encodedEmail}";
+                JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={GroupId}&userEmail={encodedEmail}";
                 JotFormBaseUrl = "https://form.jotform.com";
                 JotFormEmbedHandlerUrl = string.Empty;
                 

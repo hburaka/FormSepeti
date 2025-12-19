@@ -13,12 +13,13 @@
         <p><strong>TotalSubmissions:</strong> @Model.TotalSubmissions</p>
         <p><strong>MonthlySubmissions:</strong> @Model.MonthlySubmissions</p>
         <p><strong>LastSubmissionDate:</strong> @Model.LastSubmissionDate</p>
-        <p><strong>FormId:</strong> @Model.FormId</p>
+        <p><strong>FormId (Session):</strong> @Model.FormId</p>
         <p><strong>UserId:</strong> @Model.UserId</p>
-        <p><strong>GroupId:</strong> @Model.GroupId</p>
+        <p><strong>GroupId (Session):</strong> @Model.GroupId</p>
         <p><strong>JotFormId:</strong> @Model.JotFormId</p>
         <hr />
-        <p><strong>Query String:</strong> @HttpContext.Request.QueryString</p>
+        <p><strong>Session FormId:</strong> @HttpContext.Session.GetInt32("ActiveFormId")</p>
+        <p><strong>Session GroupId:</strong> @HttpContext.Session.GetInt32("ActiveGroupId")</p>
     </div>
 }
 

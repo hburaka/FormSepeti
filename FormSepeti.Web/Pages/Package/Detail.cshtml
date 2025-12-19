@@ -34,8 +34,8 @@
                         <i class="fas fa-box-open me-2"></i>
                         @Model.Package.PackageName
                     </h4>
-                    @* ✅ SADECE GERÇEKTEN SAHİPSE GÖSTER *@
-                    @if (Model.UserHasThisPackage == true)
+                    @* ✅ SADECE GİRİŞ YAPMIŞ VE SAHİPSE GÖSTER *@
+                    @if (Model.IsUserLoggedIn && Model.UserHasThisPackage == true)
                     {
                         <span class="badge bg-success badge-lg">
                             <i class="fas fa-check-circle me-1"></i>Sahibisiniz
@@ -100,8 +100,21 @@
                     </p>
                 </div>
 
-                @* ✅ AÇIK KARŞILAŞTIRMA *@
-                @if (Model.UserHasThisPackage == false)
+                @* ✅ BUTON LOGİĞİ: Login değilse "Giriş Yap", Login ise duruma göre buton *@
+                @if (!Model.IsUserLoggedIn)
+                {
+                    <div class="d-grid gap-2">
+                        <a class="btn btn-warning btn-lg" asp-page="/Account/Login" asp-route-returnUrl="@($"/Package/Detail/{Model.Package.PackageId}")">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Satın Almak İçin Giriş Yapın
+                        </a>
+                        <a class="btn btn-outline-primary btn-lg" asp-page="/Account/Register" asp-route-returnUrl="@($"/Package/Detail/{Model.Package.PackageId}")">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Hesap Oluştur
+                        </a>
+                    </div>
+                }
+                else if (Model.UserHasThisPackage == false)
                 {
                     <div class="d-grid gap-2">
                         <a class="btn btn-primary btn-lg" asp-page="/Package/Purchase" asp-route-packageId="@Model.Package.PackageId">
@@ -115,14 +128,6 @@
                     <div class="alert alert-success mb-0">
                         <i class="fas fa-check-circle me-2"></i>
                         Bu pakete zaten sahipsiniz! Formları kullanmaya başlayabilirsiniz.
-                    </div>
-                }
-                else
-                {
-                    @* ✅ DEBUG: UserHasThisPackage ne durumda? *@
-                    <div class="alert alert-warning mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Paket durumu belirlenemedi. Lütfen tekrar deneyin.
                     </div>
                 }
             </div>
@@ -163,14 +168,20 @@
                                             </p>
                                         </div>
                                     </div>
-                                    @* ✅ AÇIK KARŞILAŞTIRMA *@
-                                    @if (Model.UserHasThisPackage == true || (mapping.IsFreeInGroup && !mapping.RequiresPackage))
+                                    @* ✅ LOGIN + SAHİPLİK KONTROLÜ *@
+                                    @if (Model.IsUserLoggedIn && (Model.UserHasThisPackage == true || (mapping.IsFreeInGroup && !mapping.RequiresPackage)))
                                     {
                                         <a class="btn btn-sm btn-outline-primary" 
                                            asp-page="/Form/View" 
                                            asp-route-id="@mapping.FormId" 
                                            asp-route-groupId="@Model.Package.GroupId">
                                             <i class="fas fa-external-link-alt me-1"></i>Aç
+                                        </a>
+                                    }
+                                    else if (!Model.IsUserLoggedIn)
+                                    {
+                                        <a class="btn btn-sm btn-warning" asp-page="/Account/Login" asp-route-returnUrl="@($"/Package/Detail/{Model.Package.PackageId}")">
+                                            <i class="fas fa-sign-in-alt me-1"></i>Giriş
                                         </a>
                                     }
                                     else
@@ -195,7 +206,7 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
+    <!-- Sidebar - Debug panelini kaldırabilir veya sadece login olanlara gösterebilirsiniz -->
     <aside class="col-lg-4">
         <!-- Package Stats -->
         <div class="card border-0 mb-3">
@@ -230,8 +241,8 @@
             </div>
         </div>
 
-        @* ✅ DEBUG PANEL (GELİŞTİRME SIRASINDA) *@
-        @if (true) // Geliştirme modunda göster
+        @* ✅ DEBUG PANEL - Sadece login olanlara göster *@
+        @if (Model.IsUserLoggedIn)
         {
             <div class="card border-warning mb-3">
                 <div class="card-header bg-warning text-dark">
@@ -293,10 +304,20 @@
                         <i class="fas fa-arrow-left text-primary me-2"></i>
                         Tüm Paketler
                     </a>
-                    <a class="list-group-item list-group-item-action" asp-page="/Dashboard/Index">
-                        <i class="fas fa-home text-success me-2"></i>
-                        Dashboard
-                    </a>
+                    @if (Model.IsUserLoggedIn)
+                    {
+                        <a class="list-group-item list-group-item-action" asp-page="/Dashboard/Index">
+                            <i class="fas fa-home text-success me-2"></i>
+                            Dashboard
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="list-group-item list-group-item-action" asp-page="/Account/Login">
+                            <i class="fas fa-sign-in-alt text-success me-2"></i>
+                            Giriş Yap
+                        </a>
+                    }
                 </div>
             </div>
         </div>
