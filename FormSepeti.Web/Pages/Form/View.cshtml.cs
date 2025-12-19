@@ -1,11 +1,10 @@
-using FormSepeti.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
+using FormSepeti.Services.Interfaces;
+using FormSepeti.Data.Repositories.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace FormSepeti.Web.Pages.Form
 {
@@ -13,34 +12,51 @@ namespace FormSepeti.Web.Pages.Form
     {
         private readonly IFormService _formService;
         private readonly IGoogleSheetsService _googleSheetsService;
-        private readonly IUserService _userService; // ? EKLE
+        private readonly IUserService _userService;
+        private readonly IFormGroupRepository _formGroupRepository;
+        private readonly IPackageService _packageService;
+        private readonly IFormSubmissionRepository _formSubmissionRepository;
         private readonly IConfiguration _configuration;
         private readonly ILogger<ViewModel> _logger;
 
         public ViewModel(
             IFormService formService, 
             IGoogleSheetsService googleSheetsService,
-            IUserService userService, // ? EKLE
+            IUserService userService,
+            IFormGroupRepository formGroupRepository,
+            IPackageService packageService,
+            IFormSubmissionRepository formSubmissionRepository,
             IConfiguration configuration,
             ILogger<ViewModel> logger)
         {
             _formService = formService;
             _googleSheetsService = googleSheetsService;
-            _userService = userService; // ? EKLE
+            _userService = userService;
+            _formGroupRepository = formGroupRepository;
+            _packageService = packageService;
+            _formSubmissionRepository = formSubmissionRepository;
             _configuration = configuration;
             _logger = logger;
         }
 
-        [BindProperty(SupportsGet = true)] public int FormId { get; set; }
-        [BindProperty(SupportsGet = true)] public int? GroupId { get; set; }
+        [BindProperty(SupportsGet = true)] 
+        public int FormId { get; set; }
+        
+        [BindProperty(SupportsGet = true)] 
+        public int? GroupId { get; set; }
         
         public int UserId { get; set; }
-        public string UserEmail { get; set; } = string.Empty; // ? EKLE
-        public string JotFormId { get; set; }
+        public string UserEmail { get; set; } = string.Empty;
+        public string JotFormId { get; set; } = string.Empty;
         
         public string FormTitle { get; private set; } = "Form";
         public string WebhookUrl { get; private set; } = string.Empty;
         public string SpreadsheetUrl { get; private set; } = string.Empty;
+
+        // ✅ İSTATİSTİK PROPERTİLERİ
+        public int TotalSubmissions { get; private set; }
+        public int MonthlySubmissions { get; private set; }
+        public string LastSubmissionDate { get; private set; } = "Henüz yok";
 
         public string JotFormEmbedHtml { get; private set; } = string.Empty;
         public string JotFormJsUrl { get; private set; } = string.Empty;
@@ -52,9 +68,17 @@ namespace FormSepeti.Web.Pages.Form
         private int GetCurrentUserId() =>
             int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
 
-        public async Task<IActionResult> OnGetAsync(int id, int? groupId = null)
+        // ✅ PROJE STANDARDINA UYGUN: Query string ile id parametresi
+        public async Task<IActionResult> OnGetAsync(int? groupId = null)
         {
-            FormId = id;
+            // ✅ FormId otomatik olarak [BindProperty(SupportsGet = true)] ile query string'den gelecek
+            // URL: /Form/View?id=16&groupId=5
+            
+            if (FormId == 0)
+            {
+                _logger.LogWarning("FormId is 0 or missing");
+                return NotFound();
+            }
 
             UserId = GetCurrentUserId();
             if (UserId == 0)
@@ -63,7 +87,7 @@ namespace FormSepeti.Web.Pages.Form
                 return RedirectToPage("/Account/Login");
             }
 
-            // ? Kullan�c� bilgilerini al
+            // ✅ Kullanıcı bilgilerini al
             var user = await _userService.GetUserByIdAsync(UserId);
             if (user == null)
             {
@@ -71,12 +95,20 @@ namespace FormSepeti.Web.Pages.Form
                 return RedirectToPage("/Account/Login");
             }
             
-            UserEmail = user.Email ?? string.Empty; // ? Email'i set et
+            UserEmail = user.Email ?? string.Empty;
 
-            var form = await _formService.GetFormByIdAsync(id);
+            // ✅ Google bağlı mı kontrol et
+            var isGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
+            if (!isGoogleConnected)
+            {
+                TempData["Error"] = "Formları kullanabilmek için önce Google Sheets hesabınızı bağlamalısınız.";
+                return RedirectToPage("/Sheets/Connect");
+            }
+
+            var form = await _formService.GetFormByIdAsync(FormId);
             if (form == null)
             {
-                _logger.LogWarning($"Form not found: FormId={id}");
+                _logger.LogWarning($"Form not found: FormId={FormId}");
                 return NotFound();
             }
 
@@ -99,7 +131,51 @@ namespace FormSepeti.Web.Pages.Form
 
             GroupId = actualGroupId;
 
-            // Secret'� appsettings.json'dan al
+            // ✅ ERİŞİM KONTROLÜ
+            var accessInfo = await _packageService.GetUserAccessToFormAsync(UserId, FormId, actualGroupId);
+            
+            if (!accessInfo.HasAccess)
+            {
+                _logger.LogWarning($"❌ Access denied! UserId={UserId}, FormId={FormId}, GroupId={actualGroupId}");
+                _logger.LogWarning($"   IsFree={accessInfo.IsFree}, RequiresPackage={accessInfo.RequiresPackage}");
+                
+                TempData["Error"] = "Bu forma erişim yetkiniz yok. Lütfen paketi satın alın.";
+                return RedirectToPage("/Package/Index");
+            }
+
+            _logger.LogInformation($"✅ Access granted! UserId={UserId}, FormId={FormId}, IsFree={accessInfo.IsFree}");
+
+            // ✅ İSTATİSTİKLERİ ÇEKME
+            try
+            {
+                var submissions = await _formSubmissionRepository.GetByUserAndFormIdAsync(UserId, FormId);
+                TotalSubmissions = submissions.Count;
+                
+                var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+                MonthlySubmissions = submissions.Count(s => s.SubmittedDate >= startOfMonth);
+                
+                var lastSubmission = submissions.OrderByDescending(s => s.SubmittedDate).FirstOrDefault();
+                if (lastSubmission != null)
+                {
+                    var timeDiff = DateTime.UtcNow - lastSubmission.SubmittedDate;
+                    if (timeDiff.TotalMinutes < 60)
+                        LastSubmissionDate = $"{(int)timeDiff.TotalMinutes} dakika önce";
+                    else if (timeDiff.TotalHours < 24)
+                        LastSubmissionDate = $"{(int)timeDiff.TotalHours} saat önce";
+                    else if (timeDiff.TotalDays < 7)
+                        LastSubmissionDate = $"{(int)timeDiff.TotalDays} gün önce";
+                    else
+                        LastSubmissionDate = lastSubmission.SubmittedDate.ToString("dd.MM.yyyy HH:mm");
+                }
+                
+                _logger.LogInformation($"📊 Statistics - Total: {TotalSubmissions}, Monthly: {MonthlySubmissions}, Last: {LastSubmissionDate}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching form statistics");
+            }
+
+            // Secret'i appsettings.json'dan al
             var secret = _configuration["JotForm:WebhookSecret"];
             if (string.IsNullOrEmpty(secret))
             {
@@ -112,31 +188,55 @@ namespace FormSepeti.Web.Pages.Form
             try
             {
                 var userSheet = await _googleSheetsService.GetUserGoogleSheetAsync(UserId, actualGroupId);
-                SpreadsheetUrl = userSheet?.SpreadsheetUrl ?? string.Empty;
                 
-                if (string.IsNullOrEmpty(SpreadsheetUrl))
+                // ✅ Sheet yoksa oluştur
+                if (userSheet == null)
                 {
-                    _logger.LogWarning($"No Google Sheet found for UserId={UserId}, GroupId={actualGroupId}");
+                    _logger.LogWarning($"No Google Sheet found for UserId={UserId}, GroupId={actualGroupId}. Creating new spreadsheet...");
+                    
+                    var group = await _formGroupRepository.GetByIdAsync(actualGroupId);
+                    if (group != null)
+                    {
+                        var newSheetUrl = await _googleSheetsService.CreateSpreadsheetForUserGroup(
+                            UserId, 
+                            actualGroupId, 
+                            group.GroupName
+                        );
+                        
+                        if (!string.IsNullOrEmpty(newSheetUrl))
+                        {
+                            SpreadsheetUrl = newSheetUrl;
+                            _logger.LogInformation($"✅ Created Google Spreadsheet: {newSheetUrl}");
+                        }
+                        else
+                        {
+                            _logger.LogError($"Failed to create Google Spreadsheet for UserId={UserId}, GroupId={actualGroupId}");
+                        }
+                    }
+                }
+                else
+                {
+                    SpreadsheetUrl = userSheet.SpreadsheetUrl;
+                    _logger.LogInformation($"✅ Existing Google Sheet found: {SpreadsheetUrl}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting Google Sheet for UserId={UserId}, GroupId={actualGroupId}");
+                _logger.LogError(ex, $"Error handling Google Sheet for UserId={UserId}, GroupId={actualGroupId}");
             }
 
             if (!string.IsNullOrWhiteSpace(JotFormId))
             {
-                // ? Email'i URL parametresine ekle (URL encode yap)
                 var encodedEmail = System.Web.HttpUtility.UrlEncode(UserEmail);
                 JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={actualGroupId}&userEmail={encodedEmail}";
                 JotFormBaseUrl = "https://form.jotform.com";
                 JotFormEmbedHandlerUrl = string.Empty;
                 
-                _logger.LogInformation($"?? JotForm iframe URL (with email): {JotFormIFrameSrc}");
+                _logger.LogInformation($"📋 JotForm iframe URL: {JotFormIFrameSrc}");
             }
             else
             {
-                _logger.LogWarning($"JotForm ID is empty for FormId={id}");
+                _logger.LogWarning($"JotForm ID is empty for FormId={FormId}");
                 JotFormIFrameSrc = "about:blank";
             }
 

@@ -5,6 +5,23 @@
     ViewData["Title"] = Model.FormTitle;
 }
 
+<!-- ✅ DEBUG: Model değerlerini kontrol et -->
+@if (HttpContext.Request.Query.ContainsKey("debug"))
+{
+    <div class="alert alert-info">
+        <h5>Debug Info:</h5>
+        <p><strong>TotalSubmissions:</strong> @Model.TotalSubmissions</p>
+        <p><strong>MonthlySubmissions:</strong> @Model.MonthlySubmissions</p>
+        <p><strong>LastSubmissionDate:</strong> @Model.LastSubmissionDate</p>
+        <p><strong>FormId:</strong> @Model.FormId</p>
+        <p><strong>UserId:</strong> @Model.UserId</p>
+        <p><strong>GroupId:</strong> @Model.GroupId</p>
+        <p><strong>JotFormId:</strong> @Model.JotFormId</p>
+        <hr />
+        <p><strong>Query String:</strong> @HttpContext.Request.QueryString</p>
+    </div>
+}
+
 <div class="row g-4 fade-in-up">
     <!-- Header Section -->
     <div class="col-12">
@@ -17,7 +34,6 @@
                 <p class="text-muted mb-0">
                     <i class="fas fa-info-circle me-1"></i>
                     Form ID: <span class="badge bg-secondary">@Model.FormId</span>
-                    @* ✅ Email bilgisini de gösterebilirsin (opsiyonel) *@
                     | Kullanıcı: <span class="badge bg-info">@Model.UserEmail</span>
                 </p>
             </div>
@@ -49,13 +65,12 @@
             <div class="card-body p-0">
                 <!-- JotForm iFrame -->
                 <div class="form-iframe-container">
-                    <iframe 
-                        id="JotFormIFrame"
-                        src="@($"https://form.jotform.com/{Model.JotFormId}?userId={Model.UserId}&formId={Model.FormId}&groupId={Model.GroupId}&userEmail={System.Web.HttpUtility.UrlEncode(Model.UserEmail)}")"
-                        title="@Model.FormTitle"
-                        class="jotform-iframe"
-                        allow="geolocation; microphone; camera; fullscreen; payment"
-                        scrolling="yes">
+                    <iframe id="JotFormIFrame"
+                            src="@Model.JotFormIFrameSrc"
+                            title="@Model.FormTitle"
+                            class="jotform-iframe"
+                            allow="geolocation; microphone; camera; fullscreen; payment"
+                            scrolling="yes">
                     </iframe>
                 </div>
             </div>
@@ -80,7 +95,7 @@
         </div>
     </div>
 
-    <!-- Info Cards -->
+    <!-- Info Cards - İSTATİSTİKLER -->
     <div class="col-md-4">
         <div class="card border-0 info-card">
             <div class="card-body text-center">
@@ -88,7 +103,7 @@
                     <i class="fas fa-users fa-2x text-primary"></i>
                 </div>
                 <h6 class="text-muted mb-2">Toplam Gönderim</h6>
-                <h3 class="mb-0">-</h3>
+                <h3 class="mb-0">@Model.TotalSubmissions</h3>
             </div>
         </div>
     </div>
@@ -99,7 +114,7 @@
                     <i class="fas fa-calendar-check fa-2x text-success"></i>
                 </div>
                 <h6 class="text-muted mb-2">Bu Ay</h6>
-                <h3 class="mb-0">-</h3>
+                <h3 class="mb-0">@Model.MonthlySubmissions</h3>
             </div>
         </div>
     </div>
@@ -110,7 +125,7 @@
                     <i class="fas fa-clock fa-2x text-info"></i>
                 </div>
                 <h6 class="text-muted mb-2">Son Gönderim</h6>
-                <h3 class="mb-0">-</h3>
+                <h3 class="mb-0 fs-6">@Model.LastSubmissionDate</h3>
             </div>
         </div>
     </div>
@@ -165,9 +180,14 @@
     window.addEventListener('message', function(event) {
         if (event.data && event.data.action === 'submission-completed') {
             console.log('✅ Form submitted successfully!');
-            
-            // Success notification
-            showNotification('Form başarıyla gönderildi! ✅', 'success');
+
+            // Success notification & refresh page to update stats
+            showNotification('Form başarıyla gönderildi! İstatistikler güncelleniyor... ✅', 'success');
+
+            // Sayfayı 2 saniye sonra yenile
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
         }
     });
 
@@ -188,7 +208,7 @@
             <i class="fas fa-check-circle me-2"></i>${message}
         `;
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 3000);

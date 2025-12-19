@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -17,7 +18,8 @@ namespace FormSepeti.Web.Pages.Dashboard
         private readonly IUserGoogleSheetsRepository _sheetsRepository;
         private readonly IFormSubmissionRepository _submissionRepository;
         private readonly IUserPackageRepository _userPackageRepository;
-        private readonly IGoogleSheetsService _googleSheetsService; // ? EKLENDI
+        private readonly IGoogleSheetsService _googleSheetsService;
+        private readonly IFormGroupRepository _formGroupRepository;
 
         public IndexModel(
             IUserService userService,
@@ -25,29 +27,46 @@ namespace FormSepeti.Web.Pages.Dashboard
             IUserGoogleSheetsRepository sheetsRepository,
             IFormSubmissionRepository submissionRepository,
             IUserPackageRepository userPackageRepository,
-            IGoogleSheetsService googleSheetsService) // ? EKLENDI
+            IGoogleSheetsService googleSheetsService,
+            IFormGroupRepository formGroupRepository)
         {
             _userService = userService;
             _packageService = packageService;
             _sheetsRepository = sheetsRepository;
             _submissionRepository = submissionRepository;
             _userPackageRepository = userPackageRepository;
-            _googleSheetsService = googleSheetsService; // ? EKLENDI
+            _googleSheetsService = googleSheetsService;
+            _formGroupRepository = formGroupRepository;
         }
 
         public string UserName { get; private set; } = "";
         public bool IsGoogleConnected { get; private set; }
         public int TotalSubmissions { get; private set; }
-        public string? SpreadsheetUrl { get; set; } // ? NULLABLE YAPILDI
         
         // ? Aktif paketler
-        public List<UserPackage> ActivePackages { get; private set; } = new();
+        public List<GroupPackageInfo> ActivePackages { get; private set; } = new();
         public bool HasAnyPackage => ActivePackages?.Any() ?? false;
 
-        // ? Ýstatistikler
+        // ? Diðer eriþilebilir gruplar (ücretsiz formlar)
+        public List<GroupPackageInfo> OtherAccessibleGroups { get; private set; } = new();
+        public bool HasOtherGroups => OtherAccessibleGroups?.Any() ?? false;
+
+        // Ýstatistikler
         public int ActivePackageCount { get; private set; }
         public int ExpiringSoonCount { get; private set; }
         public string NextExpiryDate { get; private set; } = "Yok";
+
+        public class GroupPackageInfo
+        {
+            public int GroupId { get; set; }
+            public string GroupName { get; set; }
+            public string PackageName { get; set; }
+            public DateTime? PurchaseDate { get; set; }
+            public DateTime? ExpiryDate { get; set; }
+            public bool IsActive { get; set; }
+            public string SpreadsheetUrl { get; set; }
+            public bool IsFreeAccess { get; set; } // ? Paket olmadan eriþim
+        }
 
         private int GetUserId()
         {
@@ -72,46 +91,76 @@ namespace FormSepeti.Web.Pages.Dashboard
             UserName = user.Email ?? user.PhoneNumber ?? "Kullanýcý";
             IsGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
 
-            // ? Aktif paketleri getir
-            ActivePackages = await _userPackageRepository.GetActiveByUserIdAsync(userId);
-            ActivePackageCount = ActivePackages.Count;
+            // ? 1. Aktif paketleri getir
+            var userPackages = await _userPackageRepository.GetActiveByUserIdAsync(userId);
+            ActivePackageCount = userPackages.Count;
 
-            // ? Her paket için Google Sheets URL'lerini al
-            foreach (var package in ActivePackages)
+            var activeGroupIds = new HashSet<int>();
+
+            foreach (var up in userPackages) // ? SADECE aktif paketler
             {
-                var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, package.GroupId);
+                var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, up.GroupId);
                 
                 if (sheet == null && IsGoogleConnected)
                 {
-                    var sheetUrl = await _googleSheetsService.CreateSpreadsheetForUserGroup(
+                    // Sheet oluþtur
+                    await _googleSheetsService.CreateSpreadsheetForUserGroup(
                         userId, 
-                        package.GroupId, 
-                        package.FormGroup.GroupName
+                        up.GroupId, 
+                        up.FormGroup.GroupName
                     );
-                    
-                    if (!string.IsNullOrEmpty(sheetUrl))
-                    {
-                        package.FormGroup.Description = sheetUrl;
-                    }
                 }
-                else if (sheet != null)
+
+                ActivePackages.Add(new GroupPackageInfo
                 {
-                    package.FormGroup.Description = sheet.SpreadsheetUrl;
-                }
+                    GroupId = up.GroupId,
+                    GroupName = up.FormGroup.GroupName,
+                    PackageName = up.Package.PackageName,
+                    PurchaseDate = up.PurchaseDate,
+                    ExpiryDate = up.ExpiryDate,
+                    IsActive = up.IsActive,
+                    SpreadsheetUrl = sheet?.SpreadsheetUrl ?? "",
+                    IsFreeAccess = false
+                });
             }
 
-            // ? Ýstatistikler
-            ExpiringSoonCount = ActivePackages.Count(p => 
-                p.ExpiryDate.HasValue && 
-                p.ExpiryDate.Value <= System.DateTime.UtcNow.AddDays(7) &&
-                p.ExpiryDate.Value > System.DateTime.UtcNow);
+            // ? 2. Ücretsiz formu olan gruplarý getir
+            var freeGroups = await _formGroupRepository.GetGroupsWithFreeFormsAsync();
 
-            var nextExpiry = ActivePackages
+            foreach (var group in freeGroups)
+            {
+                // Zaten aktif pakete sahipse atla
+                if (activeGroupIds.Contains(group.GroupId))
+                    continue;
+
+                var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, group.GroupId);
+
+                // ? Eðer bu gruba daha önce form gönderildiyse spreadsheet olabilir
+                OtherAccessibleGroups.Add(new GroupPackageInfo
+                {
+                    GroupId = group.GroupId,
+                    GroupName = group.GroupName,
+                    PackageName = "Ücretsiz Formlar",
+                    PurchaseDate = null,
+                    ExpiryDate = null,
+                    IsActive = true,
+                    SpreadsheetUrl = sheet?.SpreadsheetUrl ?? "",
+                    IsFreeAccess = true
+                });
+            }
+
+            // Ýstatistikler
+            ExpiringSoonCount = userPackages.Count(p => 
+                p.ExpiryDate.HasValue && 
+                p.ExpiryDate.Value <= DateTime.UtcNow.AddDays(7) &&
+                p.ExpiryDate.Value > DateTime.UtcNow);
+
+            var nextExpiry = userPackages
                 .Where(p => p.ExpiryDate.HasValue)
                 .OrderBy(p => p.ExpiryDate)
                 .FirstOrDefault();
 
-            if (nextExpiry?.ExpiryDate != null) // ? NULL CHECK EKLENDÝ
+            if (nextExpiry?.ExpiryDate != null)
             {
                 NextExpiryDate = nextExpiry.ExpiryDate.Value.ToString("dd.MM.yyyy");
             }

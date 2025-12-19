@@ -14,11 +14,12 @@ namespace FormSepeti.Services.Implementations
 {
     public class JotFormService : IJotFormService
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient _httpClient;                    
         private readonly IGoogleSheetsService _googleSheetsService;
         private readonly IFormRepository _formRepository;
         private readonly IFormSubmissionRepository _submissionRepository;
         private readonly IUserGoogleSheetsRepository _userSheetsRepository;
+        private readonly IFormGroupRepository _groupRepository;
         private readonly string _apiKey;
 
         public JotFormService(
@@ -27,6 +28,7 @@ namespace FormSepeti.Services.Implementations
             IFormRepository formRepository,
             IFormSubmissionRepository submissionRepository,
             IUserGoogleSheetsRepository userSheetsRepository,
+            IFormGroupRepository groupRepository,
             IConfiguration configuration)
         {
             _httpClient = httpClient;
@@ -34,7 +36,8 @@ namespace FormSepeti.Services.Implementations
             _formRepository = formRepository;
             _submissionRepository = submissionRepository;
             _userSheetsRepository = userSheetsRepository;
-            _apiKey = configuration["JotForm:ApiKey"];
+            _groupRepository = groupRepository;
+            _apiKey = configuration["JotForm:ApiKey"] ?? throw new InvalidOperationException("JotForm:ApiKey is missing in configuration"); // ✅ FIX
         }
 
         public async Task<JotFormSubmissionResult> ProcessWebhook(string rawJson, int userId, int formId, int groupId)
@@ -65,22 +68,43 @@ namespace FormSepeti.Services.Implementations
                     return result;
                 }
 
+                // ✅ SHEET YOKSA OLUŞTUR
                 var userSheet = await _userSheetsRepository.GetByUserAndGroupAsync(userId, groupId);
                 if (userSheet == null)
                 {
-                    result.ErrorMessage = "Google Sheet not found for user-group combination";
-                    return result;
+                    Console.WriteLine($"⚠️ No Google Sheet found for UserId={userId}, GroupId={groupId}. Creating...");
+                    
+                    var group = await _groupRepository.GetByIdAsync(groupId);
+                    var groupName = group?.GroupName ?? $"Group {groupId}";
+                    
+                    var spreadsheetUrl = await _googleSheetsService.CreateSpreadsheetForUserGroup(
+                        userId, 
+                        groupId, 
+                        groupName
+                    );
+                    
+                    if (string.IsNullOrEmpty(spreadsheetUrl))
+                    {
+                        result.ErrorMessage = "Failed to create Google Sheet";
+                        return result;
+                    }
+                    
+                    Console.WriteLine($"✅ Created Google Sheet: {spreadsheetUrl}");
+                    
+                    userSheet = await _userSheetsRepository.GetByUserAndGroupAsync(userId, groupId);
+                    
+                    if (userSheet == null)
+                    {
+                        result.ErrorMessage = "Google Sheet created but not found in database";
+                        return result;
+                    }
                 }
 
-                // ✅ Form data'yı parse et (pretty ve metadata hariç)
                 var formData = ParseFormData(webhookData.rawRequest);
-                
-                // ✅ Header'ları otomatik al
                 var headers = formData.Keys.OrderBy(k => k).ToList();
 
                 Console.WriteLine($"🔍 Auto-detected {headers.Count} fields: {string.Join(", ", headers)}");
 
-                // ✅ Tab'ı dinamik header'larla oluştur/güncelle
                 await _googleSheetsService.CreateSheetTabForForm(
                     userId,
                     groupId,
@@ -88,7 +112,6 @@ namespace FormSepeti.Services.Implementations
                     headers
                 );
 
-                // ✅ Veriyi yaz
                 var rowNumber = await _googleSheetsService.AppendFormDataToSheet(
                     userId,
                     groupId,
@@ -105,7 +128,7 @@ namespace FormSepeti.Services.Implementations
                 result.GoogleSheetRowNumber = rowNumber;
                 result.Success = true;
 
-                await LogSubmission(userId, formId, groupId, webhookData.submissionID, rowNumber, "Success", null);
+                await LogSubmission(userId, formId, groupId, webhookData.submissionID, rowNumber, "Success", string.Empty); // ✅ FIX: null → string.Empty
 
                 return result;
             }
@@ -148,7 +171,7 @@ namespace FormSepeti.Services.Implementations
             }
         }
 
-        public async Task<JotFormSubmission> GetSubmission(string jotFormId, string submissionId)
+        public async Task<JotFormSubmission?> GetSubmission(string jotFormId, string submissionId) // ✅ FIX: nullable return
         {
             try
             {
@@ -162,7 +185,7 @@ namespace FormSepeti.Services.Implementations
             }
             catch (Exception)
             {
-                return null;
+                return null; // ✅ OK: nullable return type
             }
         }
 
@@ -175,7 +198,6 @@ namespace FormSepeti.Services.Implementations
                 var key = kvp.Key;
                 var value = kvp.Value?.ToString() ?? "";
 
-                // ✅ Metadata field'larını atla
                 var metadataFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "pretty", "ip", "submissionID", "formID", "userId", "formId", "groupId",
@@ -189,7 +211,6 @@ namespace FormSepeti.Services.Implementations
                     continue;
                 }
 
-                // ✅ "rawRequest" object'ini genişlet
                 if (key.Equals("rawRequest", StringComparison.OrdinalIgnoreCase))
                 {
                     if (kvp.Value is JsonElement rawReqElement && rawReqElement.ValueKind == JsonValueKind.Object)
@@ -201,7 +222,6 @@ namespace FormSepeti.Services.Implementations
                                 ? field.Value.GetString() ?? "" 
                                 : field.Value.ToString();
 
-                            // ✅ JotForm field ID'sini temizle (q7_ad → ad)
                             if (fieldKey.StartsWith("q") && fieldKey.Contains("_"))
                             {
                                 var parts = fieldKey.Split('_', 2);
@@ -211,13 +231,11 @@ namespace FormSepeti.Services.Implementations
                                 }
                             }
 
-                            // ✅ Nested object'leri düzleştir (dateTime)
                             if (field.Value.ValueKind == JsonValueKind.Object)
                             {
                                 fieldValue = FlattenJsonObject(field.Value);
                             }
 
-                            // ✅ JotForm internal field'larını atla
                             var jotFormInternalFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                             {
                                 "slug", "jsExecutionTracker", "submitSource", "submitDate", "buildDate",
@@ -234,7 +252,6 @@ namespace FormSepeti.Services.Implementations
                     continue;
                 }
 
-                // ✅ Diğer field'lar (rawRequest dışında)
                 if (kvp.Value is JsonElement element)
                 {
                     if (element.ValueKind == JsonValueKind.Object)
@@ -262,10 +279,8 @@ namespace FormSepeti.Services.Implementations
 
         private string FlattenJsonObject(JsonElement element)
         {
-            // ✅ DEBUG: Element'in tüm property'lerini logla
             Console.WriteLine($"📅 FlattenJsonObject called for element with {element.GetRawText()}");
             
-            // ✅ DateTime field kontrolü
             if (element.TryGetProperty("year", out var year) &&
                 element.TryGetProperty("month", out var month) &&
                 element.TryGetProperty("day", out var day))
@@ -276,7 +291,6 @@ namespace FormSepeti.Services.Implementations
                 var m = month.GetString()?.PadLeft(2, '0') ?? month.ToString().PadLeft(2, '0');
                 var d = day.GetString()?.PadLeft(2, '0') ?? day.ToString().PadLeft(2, '0');
                 
-                // Saat var mı?
                 if (element.TryGetProperty("hour", out var hour) &&
                     element.TryGetProperty("min", out var min))
                 {
@@ -288,7 +302,6 @@ namespace FormSepeti.Services.Implementations
                     return formatted;
                 }
                 
-                // Sadece tarih
                 var dateFormatted = $"{y}-{m}-{d}";
                 Console.WriteLine($"📅 Formatted as: {dateFormatted}");
                 return dateFormatted;
@@ -296,7 +309,6 @@ namespace FormSepeti.Services.Implementations
 
             Console.WriteLine($"⚠️ Not a DateTime field, using default join");
 
-            // ✅ Diğer object'ler
             var parts = new List<string>();
 
             foreach (var property in element.EnumerateObject())
@@ -314,8 +326,8 @@ namespace FormSepeti.Services.Implementations
             return string.Join(", ", parts);
         }
 
-        private async Task LogSubmission(int userId, int formId, int groupId, string jotFormSubmissionId,
-            int? rowNumber, string status, string errorMessage)
+        private async Task LogSubmission(int userId, int formId, int groupId, string? jotFormSubmissionId,
+            int? rowNumber, string status, string? errorMessage) // ✅ FIX: nullable parameters
         {
             var submission = new FormSubmission
             {

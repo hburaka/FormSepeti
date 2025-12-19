@@ -101,9 +101,9 @@
         </div>
     </div>
 
-    <!-- Active Packages Section -->
+    <!-- ✅ AKTİF PAKETLER -->
     <div class="col-lg-9">
-        <div class="card border-0">
+        <div class="card border-0 mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-box-open me-2 text-primary"></i>
@@ -127,7 +127,7 @@
                                         </div>
                                         <div>
                                             <h6 class="mb-1 text-white">
-                                                @package.Package.PackageName
+                                                @package.PackageName
                                                 @if (package.ExpiryDate.HasValue && package.ExpiryDate.Value <= DateTime.UtcNow.AddDays(7))
                                                 {
                                                     <span class="badge bg-warning ms-2">
@@ -137,11 +137,11 @@
                                             </h6>
                                             <p class="mb-1 text-light-muted">
                                                 <i class="fas fa-layer-group me-1"></i>
-                                                <strong>Grup:</strong> @package.FormGroup.GroupName
+                                                <strong>Grup:</strong> @package.GroupName
                                             </p>
                                             <p class="mb-0 text-light-secondary">
                                                 <i class="fas fa-calendar-check me-1"></i>
-                                                <strong>Satın Alındı:</strong> @package.PurchaseDate.ToString("dd.MM.yyyy")
+                                                <strong>Satın Alındı:</strong> @package.PurchaseDate?.ToString("dd.MM.yyyy")
                                                 @if (package.ExpiryDate.HasValue)
                                                 {
                                                     <span class="mx-2">•</span>
@@ -161,16 +161,15 @@
                                         <a class="btn btn-primary btn-sm" asp-page="/Form/Index" asp-route-groupId="@package.GroupId">
                                             <i class="fas fa-file-alt me-1"></i>Formları Gör
                                         </a>
-                                        @* ✅ HER PAKET İÇİN AYRI SHEETS BUTONU *@
-                                        @if (!string.IsNullOrEmpty(package.FormGroup.Description))
+                                        @if (!string.IsNullOrEmpty(package.SpreadsheetUrl))
                                         {
-                                            <a class="btn btn-success btn-sm" href="@package.FormGroup.Description" target="_blank">
-                                                <i class="fab fa-google me-1"></i>@package.FormGroup.GroupName Sheets
+                                            <a class="btn btn-success btn-sm" href="@package.SpreadsheetUrl" target="_blank">
+                                                <i class="fab fa-google me-1"></i>Sheets'i Aç
                                             </a>
                                         }
                                         else
                                         {
-                                            <span class="text-muted small">Henüz Sheet yok</span>
+                                            <span class="text-muted small">Henüz gönderim yok</span>
                                         }
                                     </div>
                                 </div>
@@ -193,6 +192,66 @@
                 }
             </div>
         </div>
+
+        <!-- ✅ DİĞER ERİŞİLEBİLİR GRUPLAR -->
+        @if (Model.HasOtherGroups)
+        {
+            <div class="card border-0">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-gift me-2 text-success"></i>
+                        Diğer Erişilebilir Gruplar
+                        <span class="badge bg-info ms-2">Ücretsiz</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Bu gruplardaki ücretsiz formları kullanabilirsiniz. Tüm formlara erişmek için paketi satın alın.
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @foreach (var group in Model.OtherAccessibleGroups)
+                        {
+                            <div class="list-group-item package-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="package-icon">
+                                            <i class="fas fa-gift text-success"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1 text-white">
+                                                @group.GroupName
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="fas fa-unlock me-1"></i>Ücretsiz Erişim
+                                                </span>
+                                            </h6>
+                                            <p class="mb-0 text-light-muted">
+                                                <i class="fas fa-layer-group me-1"></i>
+                                                Bu gruptaki bazı formlar ücretsiz olarak kullanılabilir
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-column gap-2">
+                                        <a class="btn btn-outline-primary btn-sm" asp-page="/Form/Index" asp-route-groupId="@group.GroupId">
+                                            <i class="fas fa-file-alt me-1"></i>Formları Gör
+                                        </a>
+                                        @if (!string.IsNullOrEmpty(group.SpreadsheetUrl))
+                                        {
+                                            <a class="btn btn-outline-success btn-sm" href="@group.SpreadsheetUrl" target="_blank">
+                                                <i class="fab fa-google me-1"></i>Sheets'i Aç
+                                            </a>
+                                        }
+                                        <a class="btn btn-outline-warning btn-sm" asp-page="/Package/Index">
+                                            <i class="fas fa-shopping-cart me-1"></i>Paketi Al
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 
     <!-- Quick Access Sidebar -->
@@ -225,25 +284,5 @@
                 </div>
             </div>
         </div>
-
-        @if (Model.IsGoogleConnected && !string.IsNullOrEmpty(Model.SpreadsheetUrl))
-        {
-            <div class="card border-0">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fab fa-google me-2 text-success"></i>
-                        Google Sheets
-                    </h6>
-                </div>
-                <div class="card-body text-center">
-                    <p class="text-light-muted mb-3">
-                        <small>Son verilerinizi buradan görüntüleyin</small>
-                    </p>
-                    <a class="btn btn-success w-100" href="@Model.SpreadsheetUrl" target="_blank">
-                        <i class="fab fa-google me-2"></i>Sheets'i Aç
-                    </a>
-                </div>
-            </div>
-        }
     </aside>
 </div>

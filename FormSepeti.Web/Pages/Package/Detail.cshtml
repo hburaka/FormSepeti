@@ -49,8 +49,28 @@
                         <div class="info-box">
                             <i class="fas fa-tag text-primary fa-2x mb-2"></i>
                             <h6 class="text-muted">Fiyat</h6>
-                            <h3 class="text-white">@Model.Package.Price.ToString("0.##") TL</h3>
-                            <small class="text-light-muted">/ Ay</small>
+                            <h3 class="text-white">
+                                @Model.Package.Price.ToString("0.##") TL
+                                @if (Model.Package.DurationDays.HasValue)
+                                {
+                                    if (Model.Package.DurationDays.Value <= 31)
+                                    {
+                                        <small class="text-light-muted">/ Ay</small>
+                                    }
+                                    else if (Model.Package.DurationDays.Value >= 365)
+                                    {
+                                        <small class="text-light-muted">/ Yıl</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-light-muted">/ @Model.Package.DurationDays Gün</small>
+                                    }
+                                }
+                                else
+                                {
+                                    <small class="text-light-muted">/ Süresiz</small>
+                                }
+                            </h3>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -64,7 +84,7 @@
                                 }
                                 else
                                 {
-                                    <text>Sınırsız</text>
+                                    <text>Sınırsız</text>   
                                 }
                             </h3>
                         </div>
