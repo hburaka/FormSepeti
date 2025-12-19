@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using FormSepeti.Services.Interfaces;
 using FormSepeti.Data.Repositories.Interfaces;
@@ -11,18 +13,21 @@ namespace FormSepeti.Web.Pages.Form
     {
         private readonly IFormService _formService;
         private readonly IFormGroupRepository _groupRepo;
+        private readonly IFormSubmissionRepository _submissionRepo;
 
-        public IndexModel(IFormService formService, IFormGroupRepository groupRepo)
+        public IndexModel(
+            IFormService formService, 
+            IFormGroupRepository groupRepo,
+            IFormSubmissionRepository submissionRepo)
         {
             _formService = formService;
             _groupRepo = groupRepo;
+            _submissionRepo = submissionRepo;
         }
 
         [BindProperty(SupportsGet = true)] public int? GroupId { get; set; }
         public string GroupName { get; private set; } = "Grup";
-        public List<(int Id, string Title, string Description, bool IsPaid)> Forms { get; private set; } = new();
-
-        // Added property to satisfy Razor references
+        public List<(int Id, string Title, string Description, bool IsPaid, int SubmissionCount)> Forms { get; private set; } = new();
         public string SpreadsheetUrl { get; private set; } = "";
 
         public async Task<IActionResult> OnGetAsync(int? groupId)
@@ -39,15 +44,26 @@ namespace FormSepeti.Web.Pages.Form
 
             GroupName = group.GroupName;
 
-            var forms = await _formService.GetFormsByGroupIdAsync(0, GroupId.Value); // userId not required here, use 0 or pass real userId
-            Forms = new List<(int, string, string, bool)>();
+            // ? UserId'yi al
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("UserId")?.Value ?? "0");
+
+            var forms = await _formService.GetFormsByGroupIdAsync(userId, GroupId.Value);
+            Forms = new List<(int, string, string, bool, int)>();
+            
             foreach (var f in forms)
             {
-                Forms.Add((f.Form.FormId, f.Form.FormName, f.Form.FormDescription ?? "", f.Form.IsActive));
+                // ? Her form için gönderim sayýsýný al
+                var submissions = await _submissionRepo.GetByUserAndFormIdAsync(userId, f.Form.FormId);
+                var submissionCount = submissions.Count;
+                
+                Forms.Add((
+                    f.Form.FormId, 
+                    f.Form.FormName, 
+                    f.Form.FormDescription ?? "", 
+                    f.Form.IsActive,
+                    submissionCount
+                ));
             }
-
-            // Optionally set SpreadsheetUrl if you can resolve it here
-            // SpreadsheetUrl = GetSpreadsheetUrlForGroup(GroupId.Value);
 
             return Page();
         }

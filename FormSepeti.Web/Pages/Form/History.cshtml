@@ -14,12 +14,27 @@
                     <h2 class="mb-1">
                         <i class="bi bi-clock-history text-primary me-2"></i>Gönderim Geçmişi
                     </h2>
-                    <p class="text-muted mb-0">@Model.FormTitle</p>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        <strong>@Model.FormTitle</strong>
+                        @if (!string.IsNullOrEmpty(Model.FormSheetName))
+                        {
+                            <span class="mx-2">•</span>
+                            <i class="bi bi-table me-2"></i>
+                            <span class="text-muted">Sheet: @Model.FormSheetName</span>
+                        }
+                    </p>
                 </div>
-                <div>
+                <div class="d-flex gap-2">
                     <a class="btn btn-outline-secondary" asp-page="/Form/Index" asp-route-groupId="@Model.GroupId">
                         <i class="bi bi-arrow-left me-2"></i>Formlara Dön
                     </a>
+                    @if (!string.IsNullOrEmpty(Model.SpreadsheetUrl))
+                    {
+                        <a class="btn btn-success" href="@Model.SpreadsheetUrl" target="_blank">
+                            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Google Sheets'i Aç
+                        </a>
+                    }
                 </div>
             </div>
         </div>
@@ -28,8 +43,14 @@
     <!-- Summary Stats -->
     @if (Model.Entries != null && Model.Entries.Any())
     {
+        var successCount = Model.Entries.Count(e => e.Status.Contains("Başarılı", StringComparison.OrdinalIgnoreCase) || 
+                                                      e.Status.Contains("Success", StringComparison.OrdinalIgnoreCase));
+        var failedCount = Model.Entries.Count(e => e.Status.Contains("Başarısız", StringComparison.OrdinalIgnoreCase) || 
+                                                     e.Status.Contains("Failed", StringComparison.OrdinalIgnoreCase));
+        var lastEntry = Model.Entries.FirstOrDefault();
+
         <div class="row mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -46,7 +67,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -57,13 +78,30 @@
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="text-muted mb-0">Başarılı</h6>
-                                <h3 class="mb-0">@Model.Entries.Count(e => e.Status == "Başarılı" || e.Status == "Success")</h3>
+                                <h3 class="mb-0">@successCount</h3>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="stats-icon bg-danger">
+                                    <i class="bi bi-x-circle"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="text-muted mb-0">Başarısız</h6>
+                                <h3 class="mb-0">@failedCount</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -75,16 +113,13 @@
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="text-muted mb-0">Son Gönderim</h6>
                                 <h6 class="mb-0">
-                                    @{
-                                        var lastEntry = Model.Entries.FirstOrDefault();
-                                        if (lastEntry != default)
-                                        {
-                                            @lastEntry.Date
-                                        }
-                                        else
-                                        {
-                                            @:Yok
-                                        }
+                                    @if (lastEntry != null)
+                                    {
+                                        @lastEntry.SubmittedDate.ToString("dd.MM.yyyy")
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
                                     }
                                 </h6>
                             </div>
@@ -105,7 +140,7 @@
                         <i class="bi bi-inbox display-1 text-muted mb-3"></i>
                         <h4 class="text-muted">Henüz gönderim yapılmamış</h4>
                         <p class="text-muted mb-4">Bu form için henüz bir gönderim kaydı bulunmuyor.</p>
-                        <a class="btn btn-primary" asp-page="/Form/View" asp-route-id="@ViewContext.RouteData.Values["id"]">
+                        <a class="btn btn-primary" asp-page="/Form/View" asp-route-id="@Model.FormId">
                             <i class="bi bi-pencil-square me-2"></i>İlk Gönderimi Yap
                         </a>
                     </div>
@@ -130,10 +165,11 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="ps-4">#</th>
-                                        <th>Tarih</th>
-                                        <th>Saat</th>
-                                        <th>Satır No</th>
-                                        <th>Durum</th>
+                                        <th><i class="bi bi-calendar3 me-1"></i>Tarih</th>
+                                        <th><i class="bi bi-clock me-1"></i>Saat</th>
+                                        <th><i class="bi bi-hash me-1"></i>Submission ID</th>
+                                        <th><i class="bi bi-table me-1"></i>Sheet Satırı</th>
+                                        <th><i class="bi bi-check-circle me-1"></i>Durum</th>
                                         <th class="text-end pe-4">İşlem</th>
                                     </tr>
                                 </thead>
@@ -145,47 +181,64 @@
                                                 <span class="badge bg-secondary">@item.Index</span>
                                             </td>
                                             <td>
-                                                <i class="bi bi-calendar3 text-muted me-2"></i>
-                                                @DateTime.TryParse(item.Date, out var date) 
-                                                    ? date.ToString("dd.MM.yyyy")
-                                                    : item.Date
+                                                <strong>@item.SubmittedDate.ToString("dd.MM.yyyy")</strong>
                                             </td>
                                             <td>
-                                                <i class="bi bi-clock text-muted me-2"></i>
-                                                @(DateTime.TryParse(item.Date, out var time) 
-                                                    ? time.ToString("HH:mm:ss")
-                                                    : "-")
+                                                <span class="text-muted">@item.SubmittedDate.ToString("HH:mm:ss")</span>
                                             </td>
                                             <td>
-                                                <span class="badge bg-info">@item.Row</span>
+                                                <code class="text-muted small">@item.SubmissionId.Substring(0, Math.Min(8, item.SubmissionId.Length))</code>
                                             </td>
                                             <td>
-                                                @if (item.Status == "Başarılı" || item.Status == "Success")
+                                                @if (item.RowNumber > 0)
                                                 {
-                                                    <span class="badge bg-success">
-                                                        <i class="bi bi-check-circle me-1"></i>@item.Status
-                                                    </span>
-                                                }
-                                                else if (item.Status == "Başarısız" || item.Status == "Failed")
-                                                {
-                                                    <span class="badge bg-danger">
-                                                        <i class="bi bi-x-circle me-1"></i>@item.Status
-                                                    </span>
+                                                    <span class="badge bg-info">Satır @item.RowNumber</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-warning">
-                                                        <i class="bi bi-exclamation-circle me-1"></i>@item.Status
-                                                    </span>
+                                                    <span class="text-muted">-</span>
                                                 }
                                             </td>
+                                            <td>
+                                                <span class="badge bg-@item.StatusColor">
+                                                    @if (item.StatusColor == "success")
+                                                    {
+                                                        <i class="bi bi-check-circle me-1"></i>
+                                                    }
+                                                    else if (item.StatusColor == "danger")
+                                                    {
+                                                        <i class="bi bi-x-circle me-1"></i>
+                                                    }
+                                                    else if (item.StatusColor == "warning")
+                                                    {
+                                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-question-circle me-1"></i>
+                                                    }
+                                                    @item.Status
+                                                </span>
+                                            </td>
                                             <td class="text-end pe-4">
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        type="button" 
-                                                        data-bs-toggle="tooltip" 
-                                                        title="Detayları Görüntüle">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
+                                                @if (!string.IsNullOrEmpty(item.GoogleSheetRowUrl) && item.RowNumber > 0)
+                                                {
+                                                    <a href="@item.GoogleSheetRowUrl" 
+                                                       target="_blank" 
+                                                       class="btn btn-sm btn-success"
+                                                       data-bs-toggle="tooltip" 
+                                                       title="Google Sheets'te Satır @item.RowNumber'ı Aç">
+                                                        <i class="bi bi-box-arrow-up-right"></i>
+                                                        Sheets'te Aç
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                        <i class="bi bi-dash-circle"></i>
+                                                        Bağlantı Yok
+                                                    </button>
+                                                }
                                             </td>
                                         </tr>
                                     }
@@ -196,9 +249,53 @@
                     <div class="card-footer bg-white text-muted small py-3">
                         <i class="bi bi-info-circle me-1"></i>
                         Toplam <strong>@Model.Entries.Count()</strong> gönderim kaydı gösteriliyor
+                        @if (Model.Entries.Any())
+                        {
+                            <span class="mx-2">•</span>
+                            <span>İlk gönderim: @Model.Entries.Last().SubmittedDate.ToString("dd.MM.yyyy HH:mm")</span>
+                        }
                     </div>
                 </div>
             </div>
         </div>
     }
 </div>
+
+<style>
+    .history-row {
+        transition: all 0.2s ease;
+    }
+    
+    .history-row:hover {
+        background-color: rgba(99, 102, 241, 0.05);
+        transform: translateX(2px);
+    }
+    
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    code {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+</style>
+
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>

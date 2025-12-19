@@ -1,7 +1,7 @@
 using FormSepeti.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Configuration; // ? EKLE
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Claims;
@@ -13,18 +13,21 @@ namespace FormSepeti.Web.Pages.Form
     {
         private readonly IFormService _formService;
         private readonly IGoogleSheetsService _googleSheetsService;
-        private readonly IConfiguration _configuration; // ? EKLE
+        private readonly IUserService _userService; // ? EKLE
+        private readonly IConfiguration _configuration;
         private readonly ILogger<ViewModel> _logger;
 
         public ViewModel(
             IFormService formService, 
             IGoogleSheetsService googleSheetsService,
-            IConfiguration configuration, // ? EKLE
+            IUserService userService, // ? EKLE
+            IConfiguration configuration,
             ILogger<ViewModel> logger)
         {
             _formService = formService;
             _googleSheetsService = googleSheetsService;
-            _configuration = configuration; // ? EKLE
+            _userService = userService; // ? EKLE
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -32,6 +35,7 @@ namespace FormSepeti.Web.Pages.Form
         [BindProperty(SupportsGet = true)] public int? GroupId { get; set; }
         
         public int UserId { get; set; }
+        public string UserEmail { get; set; } = string.Empty; // ? EKLE
         public string JotFormId { get; set; }
         
         public string FormTitle { get; private set; } = "Form";
@@ -59,6 +63,16 @@ namespace FormSepeti.Web.Pages.Form
                 return RedirectToPage("/Account/Login");
             }
 
+            // ? Kullanýcý bilgilerini al
+            var user = await _userService.GetUserByIdAsync(UserId);
+            if (user == null)
+            {
+                _logger.LogWarning($"User not found: UserId={UserId}");
+                return RedirectToPage("/Account/Login");
+            }
+            
+            UserEmail = user.Email ?? string.Empty; // ? Email'i set et
+
             var form = await _formService.GetFormByIdAsync(id);
             if (form == null)
             {
@@ -69,7 +83,7 @@ namespace FormSepeti.Web.Pages.Form
             FormTitle = form.FormName;
             JotFormId = form.JotFormId;
 
-            // ? GroupId'yi belirle
+            // GroupId'yi belirle
             int actualGroupId;
 
             if (groupId.HasValue)
@@ -85,12 +99,12 @@ namespace FormSepeti.Web.Pages.Form
 
             GroupId = actualGroupId;
 
-            // ? Secret'ý appsettings.json'dan al
+            // Secret'ý appsettings.json'dan al
             var secret = _configuration["JotForm:WebhookSecret"];
             if (string.IsNullOrEmpty(secret))
             {
                 _logger.LogError("JotForm:WebhookSecret is not configured in appsettings.json!");
-                secret = "default-secret-change-me"; // Fallback (production'da olmamalý)
+                secret = "default-secret-change-me";
             }
 
             WebhookUrl = $"{Request.Scheme}://{Request.Host}/api/webhook/jotform?secret={secret}";
@@ -112,11 +126,13 @@ namespace FormSepeti.Web.Pages.Form
 
             if (!string.IsNullOrWhiteSpace(JotFormId))
             {
-                JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={actualGroupId}";
+                // ? Email'i URL parametresine ekle (URL encode yap)
+                var encodedEmail = System.Web.HttpUtility.UrlEncode(UserEmail);
+                JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={actualGroupId}&userEmail={encodedEmail}";
                 JotFormBaseUrl = "https://form.jotform.com";
                 JotFormEmbedHandlerUrl = string.Empty;
                 
-                _logger.LogInformation($"? JotForm iframe URL: {JotFormIFrameSrc}");
+                _logger.LogInformation($"?? JotForm iframe URL (with email): {JotFormIFrameSrc}");
             }
             else
             {

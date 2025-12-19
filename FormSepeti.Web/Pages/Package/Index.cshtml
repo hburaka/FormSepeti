@@ -12,12 +12,67 @@
         </div>
     </div>
 
+    <!-- ✅ Filtreleme ve Sıralama Bölümü -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <!-- Filtreleme -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-funnel me-2"></i>Filtrele
+                            </label>
+                            <select name="filter" class="form-select" onchange="this.form.submit()">
+                                <option value="all" selected="@(Model.Filter == "all")">Tüm Paketler</option>
+                                <option value="owned" selected="@(Model.Filter == "owned")">Sahip Olduklarım</option>
+                                <option value="available" selected="@(Model.Filter == "available")">Satın Alınabilir</option>
+                                <option value="free" selected="@(Model.Filter == "free")">Ücretsiz Paketler</option>
+                            </select>
+                        </div>
+
+                        <!-- Sıralama Kriteri -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-sort-down me-2"></i>Sırala
+                            </label>
+                            <select name="sortBy" class="form-select" onchange="this.form.submit()">
+                                <option value="name" selected="@(Model.SortBy == "name")">Paket Adı</option>
+                                <option value="price" selected="@(Model.SortBy == "price")">Fiyat</option>
+                                <option value="owned" selected="@(Model.SortBy == "owned")">Sahiplik Durumu</option>
+                            </select>
+                        </div>
+
+                        <!-- Sıralama Yönü -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-arrow-down-up me-2"></i>Sıralama Yönü
+                            </label>
+                            <select name="sortOrder" class="form-select" onchange="this.form.submit()">
+                                <option value="asc" selected="@(Model.SortOrder == "asc")">Artan (A-Z, 0-9)</option>
+                                <option value="desc" selected="@(Model.SortOrder == "desc")">Azalan (Z-A, 9-0)</option>
+                            </select>
+                        </div>
+                    </form>
+
+                    <!-- Sonuç Sayısı -->
+                    <div class="mt-3 text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>@Model.Packages.Count</strong> paket gösteriliyor
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paketler -->
     @if (Model.Packages == null || !Model.Packages.Any())
     {
         <div class="row">
             <div class="col-12">
                 <div class="alert alert-info text-center" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>Şu anda aktif paket bulunmamaktadır.
+                    <i class="bi bi-info-circle me-2"></i>
+                    Seçtiğiniz filtreye uygun paket bulunmamaktadır.
                 </div>
             </div>
         </div>
@@ -28,14 +83,24 @@
             @foreach (var package in Model.Packages)
             {
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 shadow-sm border-0 package-card">
-                        <div class="card-body d-flex flex-column">
+                    <div class="card h-100 shadow-sm border-0 package-card @(package.IsOwned ? "owned-package" : "")">
+                        @* ✅ Badge'i sağ üst köşeye taşıdım *@
+                        @if (package.IsOwned)
+                        {
+                            <div class="owned-badge">
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Sahibisiz
+                                </span>
+                            </div>
+                        }
+                        
+                        <div class="card-body d-flex flex-column pt-4">
                             <div class="mb-3">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <h5 class="card-title fw-bold text-dark mb-0">@package.PackageName</h5>
                                     @if (package.Price == 0)
                                     {
-                                        <span class="badge bg-success">Ücretsiz</span>
+                                        <span class="badge bg-info">Ücretsiz</span>
                                     }
                                 </div>
                                 <p class="card-text text-muted small">@package.Description</p>
@@ -57,9 +122,18 @@
                                     </div>
                                 </div>
                                 
-                                <a href="/Package/Detail/@package.PackageId" class="btn btn-primary w-100">
-                                    <i class="bi bi-box-arrow-in-right me-2"></i>Detayları Gör
-                                </a>
+                                @if (package.IsOwned)
+                                {
+                                    <a href="/Package/Detail/@package.PackageId" class="btn btn-outline-success w-100">
+                                        <i class="bi bi-eye me-2"></i>Detayları Görüntüle
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="/Package/Detail/@package.PackageId" class="btn btn-primary w-100">
+                                        <i class="bi bi-box-arrow-in-right me-2"></i>Detayları Gör
+                                    </a>
+                                }
                             </div>
                         </div>
                     </div>
@@ -68,4 +142,38 @@
         </div>
     }
 </div>
+
+<style>
+    .owned-package {
+        border: 2px solid #28a745 !important;
+        background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, rgba(40, 167, 69, 0.02) 100%);
+    }
+    
+    .owned-package:hover {
+        border-color: #218838 !important;
+        box-shadow: 0 8px 24px rgba(40, 167, 69, 0.2) !important;
+    }
+
+    .package-card {
+        position: relative;
+        transition: all 0.3s ease;
+        overflow: hidden; /* ✅ Badge'in kart dışına taşmasını önler */
+    }
+
+    .package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    /* Form select styling */
+    .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    }
+
+    /* ✅ Kart içeriğine üstten boşluk (badge için alan bırak) */
+    .owned-package .card-body {
+        padding-top: 1.25rem;
+    }
+</style>
 

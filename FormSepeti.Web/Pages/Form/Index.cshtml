@@ -145,9 +145,18 @@
                                     <a class="btn btn-primary" asp-page="/Form/View" asp-route-id="@f.Id">
                                         <i class="bi bi-pencil-square me-2"></i>Formu Doldur
                                     </a>
-                                    <a class="btn btn-outline-secondary btn-sm" asp-page="/Form/History" asp-route-id="@f.Id">
-                                        <i class="bi bi-clock-history me-2"></i>Geçmiş Gönderimler
-                                    </a>
+                                    @if (f.SubmissionCount > 0)
+                                    {
+                                        <a class="btn btn-outline-secondary btn-sm" asp-page="/Form/History" asp-route-id="@f.Id">
+                                            <i class="bi bi-clock-history me-2"></i>Geçmiş Gönderimler (@f.SubmissionCount)
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                                            <i class="bi bi-inbox me-2"></i>Daha Form Göndermediniz
+                                        </button>
+                                    }
                                 </div>
                             </div>
                         </div>

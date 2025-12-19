@@ -17,6 +17,8 @@
                 <p class="text-muted mb-0">
                     <i class="fas fa-info-circle me-1"></i>
                     Form ID: <span class="badge bg-secondary">@Model.FormId</span>
+                    @* ✅ Email bilgisini de gösterebilirsin (opsiyonel) *@
+                    | Kullanıcı: <span class="badge bg-info">@Model.UserEmail</span>
                 </p>
             </div>
             <div class="d-flex gap-2">
@@ -49,7 +51,7 @@
                 <div class="form-iframe-container">
                     <iframe 
                         id="JotFormIFrame"
-                        src="@($"https://form.jotform.com/{Model.JotFormId}?userId={Model.UserId}&formId={Model.FormId}&groupId={Model.GroupId}")"
+                        src="@($"https://form.jotform.com/{Model.JotFormId}?userId={Model.UserId}&formId={Model.FormId}&groupId={Model.GroupId}&userEmail={System.Web.HttpUtility.UrlEncode(Model.UserEmail)}")"
                         title="@Model.FormTitle"
                         class="jotform-iframe"
                         allow="geolocation; microphone; camera; fullscreen; payment"
