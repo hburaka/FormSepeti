@@ -224,7 +224,9 @@ namespace FormSepeti.Web.Controllers
                     return NotFound(new { error = "Form not found" });
                 }
 
-                var webhookUrl = $"{Request.Scheme}://{Request.Host}/api/webhook/jotform/{userId}/{formId}/{{groupId}}?secret=9oq8r838ihaq";
+                // ✅ Secret'i config'ten al
+                var secret = _config["JotForm:WebhookSecret"];
+                var webhookUrl = $"{Request.Scheme}://{Request.Host}/api/webhook/jotform/{userId}/{formId}/{{groupId}}?secret={secret}";
 
                 return Ok(new
                 {
@@ -232,7 +234,7 @@ namespace FormSepeti.Web.Controllers
                     formName = form.FormName,
                     jotFormId = form.JotFormId,
                     webhookUrl = webhookUrl,
-                    instructions = "JotForm'da webhook URL'sini ayarlayın"
+                    instructions = "Kolaytik panel'de webhook URL'sini ayarlayın"
                 });
             }
             catch (Exception ex)

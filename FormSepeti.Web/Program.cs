@@ -141,7 +141,8 @@ builder.Services.AddSingleton<LoginAttemptService>();
 
 builder.Services.AddHttpClient<IJotFormService, JotFormService>(client =>
 {
-    client.BaseAddress = new Uri("https://api.jotform.com/");
+    var baseUrl = builder.Configuration["JotForm:ApiBaseUrl"] ?? "https://panel.kolaytik.com/API";
+    client.BaseAddress = new Uri(baseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 

@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using FormSepeti.Data.Entities;
 using FormSepeti.Data.Repositories.Interfaces;
 using FormSepeti.Services.Interfaces;
@@ -21,6 +22,7 @@ namespace FormSepeti.Services.Implementations
         private readonly IUserGoogleSheetsRepository _userSheetsRepository;
         private readonly IFormGroupRepository _groupRepository;
         private readonly string _apiKey;
+        private readonly ILogger<JotFormService> _logger; // ✅ EKLENDİ
 
         public JotFormService(
             HttpClient httpClient,
@@ -29,7 +31,8 @@ namespace FormSepeti.Services.Implementations
             IFormSubmissionRepository submissionRepository,
             IUserGoogleSheetsRepository userSheetsRepository,
             IFormGroupRepository groupRepository,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ILogger<JotFormService> logger) // ✅ EKLENDİ
         {
             _httpClient = httpClient;
             _googleSheetsService = googleSheetsService;
@@ -37,7 +40,11 @@ namespace FormSepeti.Services.Implementations
             _submissionRepository = submissionRepository;
             _userSheetsRepository = userSheetsRepository;
             _groupRepository = groupRepository;
-            _apiKey = configuration["JotForm:ApiKey"] ?? throw new InvalidOperationException("JotForm:ApiKey is missing in configuration"); // ✅ FIX
+            _logger = logger; // ✅ EKLENDİ
+            _apiKey = configuration["JotForm:ApiKey"] ?? throw new InvalidOperationException("JotForm:ApiKey is missing");
+            
+            // ✅ BaseAddress'i log'la
+            _logger.LogInformation($"JotFormService initialized with BaseUrl: {_httpClient.BaseAddress}");
         }
 
         public async Task<JotFormSubmissionResult> ProcessWebhook(string rawJson, int userId, int formId, int groupId)
@@ -144,7 +151,8 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
-                var response = await _httpClient.GetAsync($"form/{jotFormId}/questions?apiKey={_apiKey}");
+                // ✅ Kolaytik API format: /user/forms/{formId}/questions
+                var response = await _httpClient.GetAsync($"user/forms/{jotFormId}/questions?apiKey={_apiKey}");
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
@@ -165,16 +173,18 @@ namespace FormSepeti.Services.Implementations
 
                 return fields;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"Error fetching form fields for {jotFormId}");
                 return new List<string>();
             }
         }
 
-        public async Task<JotFormSubmission?> GetSubmission(string jotFormId, string submissionId) // ✅ FIX: nullable return
+        public async Task<JotFormSubmission?> GetSubmission(string jotFormId, string submissionId)
         {
             try
             {
+                // ✅ Kolaytik API format: /submission/{submissionId}
                 var response = await _httpClient.GetAsync($"submission/{submissionId}?apiKey={_apiKey}");
                 response.EnsureSuccessStatusCode();
 
@@ -183,12 +193,13 @@ namespace FormSepeti.Services.Implementations
 
                 return submission?.content;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return null; // ✅ OK: nullable return type
+                _logger.LogError(ex, $"Error fetching submission {submissionId}");
+                return null;
             }
         }
-
+        
         private Dictionary<string, string> ParseFormData(Dictionary<string, object> rawRequest)
         {
             var formData = new Dictionary<string, string>();

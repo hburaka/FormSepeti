@@ -212,12 +212,15 @@ namespace FormSepeti.Web.Pages.Form
 
             if (!string.IsNullOrWhiteSpace(JotFormId))
             {
+                // ✅ Kolaytik form URL'i
+                var formBaseUrl = _configuration["JotForm:FormBaseUrl"] ?? "https://panel.kolaytik.com";
                 var encodedEmail = System.Web.HttpUtility.UrlEncode(UserEmail);
-                JotFormIFrameSrc = $"https://form.jotform.com/{JotFormId}?userId={UserId}&formId={FormId}&groupId={GroupId}&userEmail={encodedEmail}";
-                JotFormBaseUrl = "https://form.jotform.com";
+                
+                JotFormIFrameSrc = $"{formBaseUrl}/{JotFormId}?userId={UserId}&formId={FormId}&groupId={GroupId}&userEmail={encodedEmail}";
+                JotFormBaseUrl = formBaseUrl;
                 JotFormEmbedHandlerUrl = string.Empty;
                 
-                _logger.LogInformation($"📋 JotForm iframe URL: {JotFormIFrameSrc}");
+                _logger.LogInformation($"📋 Kolaytik form iframe URL: {JotFormIFrameSrc}");
             }
             else
             {
