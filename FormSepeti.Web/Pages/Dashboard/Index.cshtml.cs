@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using FormSepeti.Services.Interfaces;
 using FormSepeti.Data.Repositories.Interfaces;
 using FormSepeti.Data.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace FormSepeti.Web.Pages.Dashboard
 {
@@ -20,6 +21,7 @@ namespace FormSepeti.Web.Pages.Dashboard
         private readonly IUserPackageRepository _userPackageRepository;
         private readonly IGoogleSheetsService _googleSheetsService;
         private readonly IFormGroupRepository _formGroupRepository;
+        private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
             IUserService userService,
@@ -28,7 +30,8 @@ namespace FormSepeti.Web.Pages.Dashboard
             IFormSubmissionRepository submissionRepository,
             IUserPackageRepository userPackageRepository,
             IGoogleSheetsService googleSheetsService,
-            IFormGroupRepository formGroupRepository)
+            IFormGroupRepository formGroupRepository,
+            ILogger<IndexModel> logger)
         {
             _userService = userService;
             _packageService = packageService;
@@ -37,6 +40,7 @@ namespace FormSepeti.Web.Pages.Dashboard
             _userPackageRepository = userPackageRepository;
             _googleSheetsService = googleSheetsService;
             _formGroupRepository = formGroupRepository;
+            _logger = logger;
         }
 
         public string UserName { get; private set; } = "";
@@ -90,10 +94,10 @@ namespace FormSepeti.Web.Pages.Dashboard
 
             UserName = user.Email ?? user.PhoneNumber ?? "Kullanıcı";
             
-            // ✅ DÜZELT: userId ile çağır (email yerine)
-            IsGoogleConnected = await _userService.IsGoogleSheetsConnectedAsync(user.GoogleId);
+            // ✅ YENİ: Token kontrol ve yenileme
+            IsGoogleConnected = await CheckAndRefreshTokenAsync(user);
 
-            // ✅ 1. Aktif paketleri getir
+            // Aktif paketleri getir
             var userPackages = await _userPackageRepository.GetActiveByUserIdAsync(userId);
             ActivePackageCount = userPackages.Count;
 
@@ -101,18 +105,18 @@ namespace FormSepeti.Web.Pages.Dashboard
 
             foreach (var up in userPackages)
             {
-                activeGroupIds.Add(up.GroupId); // ✅ Grup ID'sini ekle
+                activeGroupIds.Add(up.GroupId);
                 
                 var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, up.GroupId);
                 
                 if (sheet == null && IsGoogleConnected)
                 {
-                    // Sheet oluştur
                     await _googleSheetsService.CreateSpreadsheetForUserGroup(
                         userId, 
                         up.GroupId, 
                         up.FormGroup.GroupName
                     );
+                    sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, up.GroupId);
                 }
 
                 ActivePackages.Add(new GroupPackageInfo
@@ -128,18 +132,16 @@ namespace FormSepeti.Web.Pages.Dashboard
                 });
             }
 
-            // ✅ 2. Ücretsiz formu olan grupları getir
+            // Ücretsiz formları olan grupları getir
             var freeGroups = await _formGroupRepository.GetGroupsWithFreeFormsAsync();
 
             foreach (var group in freeGroups)
             {
-                // Zaten aktif pakete sahipse atla
                 if (activeGroupIds.Contains(group.GroupId))
                     continue;
 
                 var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, group.GroupId);
 
-                // ? Eğer bu gruba daha önce form gönderildiyse spreadsheet olabilir
                 OtherAccessibleGroups.Add(new GroupPackageInfo
                 {
                     GroupId = group.GroupId,
@@ -172,6 +174,48 @@ namespace FormSepeti.Web.Pages.Dashboard
             TotalSubmissions = await _submissionRepository.GetCountByUserIdAsync(userId);
 
             return Page();
+        }
+
+        // ✅ YENİ: Token kontrol ve yenileme metodu
+        private async Task<bool> CheckAndRefreshTokenAsync(User user)
+        {
+            if (string.IsNullOrEmpty(user.GoogleRefreshToken))
+            {
+                _logger.LogInformation($"No refresh token for UserId={user.UserId}");
+                return false;
+            }
+
+            // Token geçerli mi?
+            if (user.GoogleTokenExpiry.HasValue && user.GoogleTokenExpiry.Value > DateTime.UtcNow)
+            {
+                _logger.LogInformation($"Token valid for UserId={user.UserId}");
+                return true;
+            }
+
+            // Token dolmuş, yenile
+            _logger.LogInformation($"Dashboard: Refreshing expired token for UserId={user.UserId}");
+            
+            try
+            {
+                var refreshed = await _googleSheetsService.RefreshAccessToken(user.UserId);
+                
+                if (!refreshed)
+                {
+                    TempData["Warning"] = "Google Sheets bağlantınızın süresi dolmuş. Lütfen yeniden bağlanın.";
+                    _logger.LogWarning($"Token refresh failed for UserId={user.UserId}");
+                    return false;
+                }
+
+                TempData["Info"] = "Google Sheets bağlantınız otomatik olarak yenilendi.";
+                _logger.LogInformation($"Token refreshed successfully for UserId={user.UserId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error refreshing token for UserId={user.UserId}");
+                TempData["Error"] = "Google Sheets bağlantınız yenilenirken bir hata oluştu.";
+                return false;
+            }
         }
     }
 }

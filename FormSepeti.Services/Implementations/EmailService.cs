@@ -129,6 +129,43 @@ namespace FormSepeti.Services.Implementations
             return await SendEmailAsync(toEmail, subject, body, "FormSubmission");
         }
 
+        public async Task<bool> SendGoogleTokenExpiredNotificationAsync(string toEmail)
+        {
+            try
+            {
+                var subject = "Google Sheets Bağlantınız Yenilenmeli - FormSepeti";
+                var reconnectUrl = $"{_baseUrl}/Sheets/Connect";
+                
+                var body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                            <h2 style='color: #ff9800;'>⚠️ Google Sheets Bağlantısı Yenilenmeli</h2>
+                            <p>Merhaba,</p>
+                            <p>Google Sheets bağlantınızın süresi dolmuş ve otomatik yenilenemiyor.</p>
+                            <p><strong>Formlardan gelen yeni veriler artık Google Sheets'e kaydedilmiyor!</strong></p>
+                            <p>Lütfen bağlantınızı yenilemek için aşağıdaki butona tıklayın:</p>
+                            <div style='text-align: center; margin: 30px 0;'>
+                                <a href='{reconnectUrl}' style='background-color: #ff9800; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;'>
+                                    Bağlantıyı Yenile
+                                </a>
+                            </div>
+                            <p style='color: #64748b; font-size: 12px;'>
+                                Bu e-posta otomatik olarak gönderilmiştir.
+                            </p>
+                        </div>
+                    </body>
+                    </html>";
+
+                return await SendEmailAsync(toEmail, subject, body, "TokenExpired");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending token expired notification to {Email}", toEmail);
+                return false;
+            }
+        }
+
         private async Task<bool> SendEmailAsync(string toEmail, string subject, string body, string emailType)
         {
             try

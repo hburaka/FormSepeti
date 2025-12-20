@@ -27,64 +27,108 @@
                 <span class="text-gradient">FormSepeti</span>
             </a>
             
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <div class="navbar-nav ms-auto">
-                    <div class="dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" 
-                           href="#" 
-                           id="userDropdown" 
-                           role="button" 
-                           data-bs-toggle="dropdown" 
-                           aria-expanded="false">
-                            
-                            @* ✅ PROFIL FOTOĞRAFI *@
-                            @{
-                                var photoUrl = User.FindFirst("ProfilePhotoUrl")?.Value;
-                                var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "User";
-                                var initials = email.Length > 0 ? email[0].ToString().ToUpper() : "U";
-                            }
-                            
-                            @if (!string.IsNullOrEmpty(photoUrl))
-                            {
-                                <img src="@photoUrl" 
-                                     alt="Profile" 
-                                     class="rounded-circle me-2" 
-                                     width="32" 
-                                     height="32"
-                                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27%3E%3Crect fill=%27%236366f1%27 width=%2732%27 height=%2732%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 fill=%27white%27 font-size=%2716%27%3E@initials%3C/text%3E%3C/svg%3E';">
-                            }
-                            else
-                            {
-                                <div class="avatar-placeholder rounded-circle me-2 d-inline-flex align-items-center justify-content-center"
-                                     style="width: 32px; height: 32px; background-color: #6366f1; color: white; font-weight: bold;">
-                                    @initials
-                                </div>
-                            }
-                            
-                            <span>@email</span>
-                        </a>
+            <!-- ✅ YENİ: Navbar Toggle Button (Mobil için) -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <!-- ✅ YENİ: Navbar Links -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <!-- Dashboard Link -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Dashboard/Index">
+                                <i class="fas fa-home me-1"></i>Dashboard
+                            </a>
+                        </li>
                         
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" asp-page="/Account/Profile">
-                                <i class="fas fa-user me-2"></i>Profil
-                            </a></li>
-                            <li><a class="dropdown-item" asp-page="/Dashboard/Index">
-                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="post" asp-controller="Account" asp-action="Logout">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="dropdown-item">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            }
+                        <!-- Paketlerim Link -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Package/Index">
+                                <i class="fas fa-box me-1"></i>Paketler
+                            </a>
+                        </li>
+                        
+                        <!-- Google Sheets Link -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Sheets/Connect">
+                                <i class="fab fa-google me-1"></i>Google Bağlantısı
+                            </a>
+                        </li>
+                        
+                        <!-- User Dropdown -->
+                        <li class="nav-item dropdown ms-lg-2">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" 
+                               href="#" 
+                               id="userDropdown" 
+                               role="button" 
+                               data-bs-toggle="dropdown" 
+                               aria-expanded="false">
+                                
+                                @* ✅ PROFIL FOTOĞRAFI *@
+                                @{
+                                    var photoUrl = User.FindFirst("ProfilePhotoUrl")?.Value;
+                                    var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "User";
+                                    var initials = email.Length > 0 ? email[0].ToString().ToUpper() : "U";
+                                }
+                                
+                                @if (!string.IsNullOrEmpty(photoUrl))
+                                {
+                                    <img src="@photoUrl" 
+                                         alt="Profile" 
+                                         class="rounded-circle me-2" 
+                                         width="32" 
+                                         height="32"
+                                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27%3E%3Crect fill=%27%236366f1%27 width=%2732%27 height=%2732%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 fill=%27white%27 font-size=%2716%27%3E@initials%3C/text%3E%3C/svg%3E';">
+                                }
+                                else
+                                {
+                                    <div class="avatar-placeholder rounded-circle me-2 d-inline-flex align-items-center justify-content-center"
+                                         style="width: 32px; height: 32px; background-color: #6366f1; color: white; font-weight: bold;">
+                                        @initials
+                                    </div>
+                                }
+                                
+                                <span>@email</span>
+                            </a>
+                            
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" asp-page="/Account/Profile">
+                                    <i class="fas fa-user me-2"></i>Profil
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" asp-controller="Account" asp-action="Logout">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    else
+                    {
+                        <!-- Giriş Yap Link -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Account/Login">
+                                <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
+                            </a>
+                        </li>
+                        
+                        <!-- Kayıt Ol Button -->
+                        <li class="nav-item ms-lg-2">
+                            <a class="btn btn-light btn-sm" asp-page="/Account/Register">
+                                <i class="fas fa-user-plus me-1"></i>Kayıt Ol
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
         </div>
     </nav>
 

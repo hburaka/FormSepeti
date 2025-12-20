@@ -21,6 +21,7 @@ namespace FormSepeti.Services.Implementations
         private readonly IFormSubmissionRepository _submissionRepository;
         private readonly IUserGoogleSheetsRepository _userSheetsRepository;
         private readonly IFormGroupRepository _groupRepository;
+        private readonly IUserRepository _userRepository;
         private readonly string _apiKey;
         private readonly ILogger<JotFormService> _logger; // ✅ EKLENDİ
 
@@ -31,6 +32,7 @@ namespace FormSepeti.Services.Implementations
             IFormSubmissionRepository submissionRepository,
             IUserGoogleSheetsRepository userSheetsRepository,
             IFormGroupRepository groupRepository,
+            IUserRepository userRepository, // ✅ YENİ
             IConfiguration configuration,
             ILogger<JotFormService> logger) // ✅ EKLENDİ
         {
@@ -40,6 +42,7 @@ namespace FormSepeti.Services.Implementations
             _submissionRepository = submissionRepository;
             _userSheetsRepository = userSheetsRepository;
             _groupRepository = groupRepository;
+            _userRepository = userRepository; // ✅ YENİ
             _logger = logger; // ✅ EKLENDİ
             _apiKey = configuration["JotForm:ApiKey"] ?? throw new InvalidOperationException("JotForm:ApiKey is missing");
             
@@ -59,6 +62,17 @@ namespace FormSepeti.Services.Implementations
 
             try
             {
+                _logger.LogInformation($"📝 Processing webhook for UserId={userId}, FormId={formId}");
+
+                // ✅ YENİ: Token kontrolü
+                var tokenValid = await CheckGoogleTokenAsync(userId);
+                if (!tokenValid)
+                {
+                    result.ErrorMessage = "Google Sheets bağlantısı geçersiz. Lütfen yeniden bağlanın.";
+                    _logger.LogError($"❌ Invalid Google token for UserId={userId}");
+                    return result;
+                }
+
                 var webhookData = JsonSerializer.Deserialize<JotFormWebhookPayload>(rawJson);
                 if (webhookData?.rawRequest == null)
                 {
@@ -353,6 +367,46 @@ namespace FormSepeti.Services.Implementations
             };
 
             await _submissionRepository.CreateAsync(submission);
+        }
+
+        // ✅ YENİ: Token kontrol ve yenileme metodu
+        private async Task<bool> CheckGoogleTokenAsync(int userId)
+        {
+            try
+            {
+                var user = await _userRepository.GetByIdAsync(userId);
+                
+                if (user == null || string.IsNullOrEmpty(user.GoogleRefreshToken))
+                {
+                    _logger.LogWarning($"No Google token for UserId={userId}");
+                    return false;
+                }
+
+                // Token geçerli mi?
+                if (user.GoogleTokenExpiry.HasValue && user.GoogleTokenExpiry.Value > DateTime.UtcNow)
+                {
+                    _logger.LogInformation($"✅ Token valid for UserId={userId}");
+                    return true;
+                }
+
+                // Token dolmuş, yenile
+                _logger.LogInformation($"🔄 Refreshing token for UserId={userId}");
+                var refreshed = await _googleSheetsService.RefreshAccessToken(userId);
+                
+                if (!refreshed)
+                {
+                    _logger.LogError($"❌ Token refresh failed for UserId={userId}");
+                    return false;
+                }
+
+                _logger.LogInformation($"✅ Token refreshed successfully for UserId={userId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error checking Google token for UserId={userId}");
+                return false;
+            }
         }
     }
 }

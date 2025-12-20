@@ -9,6 +9,7 @@ using FormSepeti.Services.Interfaces;
 using FormSepeti.Services.Implementations;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.OAuth; // ✅ BU SATIRI EKLEYİN
+using FormSepeti.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -210,6 +211,10 @@ app.UseRouting();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ✅ YENİ: Token auto-refresh middleware
+app.UseGoogleTokenRefresh();
+
 app.UseSession();
 
 app.MapControllerRoute(

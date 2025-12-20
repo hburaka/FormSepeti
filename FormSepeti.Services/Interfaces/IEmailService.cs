@@ -10,5 +10,6 @@ namespace FormSepeti.Services.Interfaces
         Task<bool> SendFormSubmissionNotificationAsync(string toEmail, string formTitle, int submissionCount);
         Task<bool> SendAccountExistsNotificationAsync(string toEmail);
         Task<bool> SendPackagePurchaseConfirmationAsync(string toEmail, string userName, string packageName, decimal amount);
+        Task<bool> SendGoogleTokenExpiredNotificationAsync(string toEmail);
     }
 }
