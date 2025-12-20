@@ -83,8 +83,24 @@ namespace FormSepeti.Web.Pages.Sheets
             
                     if (hasExpiredToken)
                     {
-                        ConnectionStatus = "expired";
-                        TempData["Warning"] = "Google Sheets token'ınızın süresi dolmuş. Lütfen yeniden bağlanın.";
+                        _logger.LogInformation($"Token expired, attempting refresh for UserId={userId}");
+                        
+                        // ✅ Token yenileme denemesi yap
+                        var refreshed = await _googleSheetsService.RefreshAccessToken(userId);
+                        
+                        if (refreshed)
+                        {
+                            // ✅ Yenileme başarılı, bağlı olarak göster
+                            ConnectionStatus = "connected";
+                            IsAlreadyConnected = true;
+                            TempData["Info"] = "Google Sheets bağlantınız yenilendi!";
+                        }
+                        else
+                        {
+                            // ❌ Yenileme başarısız, gerçekten süresi dolmuş
+                            ConnectionStatus = "expired";
+                            TempData["Warning"] = "Google Sheets token'ınızın süresi dolmuş. Lütfen yeniden bağlanın.";
+                        }
                     }
                     else
                     {

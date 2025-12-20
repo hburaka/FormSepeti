@@ -214,18 +214,28 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"🔑 Password reset requested for: {MaskEmail(email)}");
+
                 var user = await _userRepository.GetByEmailAsync(email.ToLower().Trim());
 
                 if (user == null)
                 {
-                    return true;
+                    _logger.LogWarning($"⚠️ User not found: {MaskEmail(email)}");
+                    return true; // ⚠️ Güvenlik için success döndür
                 }
 
                 var resetToken = GenerateSecureToken();
+
+                // ✅ YENİ: Token'ı logla
+                _logger.LogInformation($"🔐 Generated reset token: {resetToken.Substring(0, 10)}... for user: {user.UserId}");
+
                 user.ActivationToken = resetToken;
                 user.ActivationTokenExpiry = DateTime.UtcNow.AddHours(1);
 
-                await _userRepository.UpdateAsync(user);
+                var updated = await _userRepository.UpdateAsync(user);
+
+                // ✅ YENİ: Update sonucunu logla
+                _logger.LogInformation($"💾 Database update result: {updated} for UserId: {user.UserId}");
 
                 await _emailService.SendPasswordResetEmailAsync(
                     user.Email,
@@ -233,11 +243,12 @@ namespace FormSepeti.Services.Implementations
                     resetToken
                 );
 
+                _logger.LogInformation($"✅ Password reset email sent to: {MaskEmail(user.Email)}");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error requesting password reset: {email}");
+                _logger.LogError(ex, $"❌ Error requesting password reset: {email}");
                 return false;
             }
         }
@@ -246,15 +257,41 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"🔑 Password reset attempt");
+                _logger.LogInformation($"📝 Token received: [{resetToken}]");
+                _logger.LogInformation($"📝 Token length: {resetToken?.Length ?? 0}");
+
                 var user = await _userRepository.GetByActivationTokenAsync(resetToken);
 
-                if (user == null || user.ActivationTokenExpiry < DateTime.UtcNow)
+                if (user == null)
                 {
+                    _logger.LogWarning($"❌ Token not found in database");
+
+                    // ✅ Database'deki token'ı debug için logla
+                    var allUsers = await _userRepository.GetByEmailAsync("hburaka@gmail.com");
+                    if (allUsers != null)
+                    {
+                        _logger.LogWarning($"📝 DB Token: [{allUsers.ActivationToken}]");
+                        _logger.LogWarning($"📝 DB Token length: {allUsers.ActivationToken?.Length ?? 0}");
+                        _logger.LogWarning($"🔍 Tokens match: {allUsers.ActivationToken == resetToken}");
+                    }
+
                     return false;
                 }
 
+                _logger.LogInformation($"✅ Token found for UserId: {user.UserId}, Email: {MaskEmail(user.Email)}");
+
+                if (user.ActivationTokenExpiry < DateTime.UtcNow)
+                {
+                    _logger.LogWarning($"⏰ Token expired. Expiry: {user.ActivationTokenExpiry}, Now: {DateTime.UtcNow}");
+                    return false;
+                }
+
+                _logger.LogInformation($"⏰ Token valid. Remaining: {(user.ActivationTokenExpiry - DateTime.UtcNow).Value.TotalMinutes:F1} min");
+
                 if (!ValidatePassword(newPassword, out string passwordError))
                 {
+                    _logger.LogWarning($"⚠️ Password validation failed: {passwordError}");
                     return false;
                 }
 
@@ -264,11 +301,12 @@ namespace FormSepeti.Services.Implementations
 
                 await _userRepository.UpdateAsync(user);
 
+                _logger.LogInformation($"✅ Password reset successful for UserId: {user.UserId}");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error resetting password: {resetToken}");
+                _logger.LogError(ex, $"❌ Error resetting password");
                 return false;
             }
         }
@@ -403,27 +441,37 @@ namespace FormSepeti.Services.Implementations
         // ✅ YENİ - Ardışık karakter kontrolü helper
         private bool HasSequentialCharacters(string password)
         {
-            for (int i = 0; i < password.Length - 2; i++)
+            // ✅ 4 veya daha fazla ardışık karakter varsa reddet (3 yerine)
+            for (int i = 0; i < password.Length - 3; i++) // ← 3 yerine 4
             {
                 if (char.IsLetterOrDigit(password[i]) &&
                     char.IsLetterOrDigit(password[i + 1]) &&
-                    char.IsLetterOrDigit(password[i + 2]))
+                    char.IsLetterOrDigit(password[i + 2]) &&
+                    char.IsLetterOrDigit(password[i + 3])) // ← YENİ
                 {
-                    // Sayısal ardışıklık (123, 321)
-                    if (char.IsDigit(password[i]) && char.IsDigit(password[i + 1]) && char.IsDigit(password[i + 2]))
+                    // Sayısal ardışıklık (1234, 4321)
+                    if (char.IsDigit(password[i]) && char.IsDigit(password[i + 1]) && 
+                        char.IsDigit(password[i + 2]) && char.IsDigit(password[i + 3]))
                     {
                         int diff1 = password[i + 1] - password[i];
                         int diff2 = password[i + 2] - password[i + 1];
-                        if ((diff1 == 1 && diff2 == 1) || (diff1 == -1 && diff2 == -1))
+                        int diff3 = password[i + 3] - password[i + 2];
+                        
+                        if ((diff1 == 1 && diff2 == 1 && diff3 == 1) || 
+                            (diff1 == -1 && diff2 == -1 && diff3 == -1))
                             return true;
                     }
 
-                    // Alfabetik ardışıklık (abc, xyz)
-                    if (char.IsLetter(password[i]) && char.IsLetter(password[i + 1]) && char.IsLetter(password[i + 2]))
+                    // Alfabetik ardışıklık (abcd, dcba)
+                    if (char.IsLetter(password[i]) && char.IsLetter(password[i + 1]) && 
+                        char.IsLetter(password[i + 2]) && char.IsLetter(password[i + 3]))
                     {
                         int diff1 = char.ToLower(password[i + 1]) - char.ToLower(password[i]);
                         int diff2 = char.ToLower(password[i + 2]) - char.ToLower(password[i + 1]);
-                        if ((diff1 == 1 && diff2 == 1) || (diff1 == -1 && diff2 == -1))
+                        int diff3 = char.ToLower(password[i + 3]) - char.ToLower(password[i + 2]);
+                        
+                        if ((diff1 == 1 && diff2 == 1 && diff3 == 1) || 
+                            (diff1 == -1 && diff2 == -1 && diff3 == -1))
                             return true;
                     }
                 }

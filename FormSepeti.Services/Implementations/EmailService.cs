@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Net;
-using System.Net.Mail;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using FormSepeti.Data.Entities;
 using FormSepeti.Data.Repositories.Interfaces;
 using FormSepeti.Services.Interfaces;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace FormSepeti.Services.Implementations
 {
@@ -19,6 +20,7 @@ namespace FormSepeti.Services.Implementations
         private readonly string _fromEmail;
         private readonly string _fromName;
         private readonly string _baseUrl;
+        private readonly bool _enableSsl;
         private readonly IEmailLogRepository _emailLogRepository;
         private readonly ILogger<EmailService> _logger;
 
@@ -34,6 +36,7 @@ namespace FormSepeti.Services.Implementations
             _fromEmail = configuration["Smtp:FromEmail"];
             _fromName = configuration["Smtp:FromName"];
             _baseUrl = configuration["Application:BaseUrl"];
+            _enableSsl = bool.Parse(configuration["Smtp:EnableSsl"] ?? "true");
             _emailLogRepository = emailLogRepository;
             _logger = logger;
         }
@@ -73,13 +76,12 @@ namespace FormSepeti.Services.Implementations
             return await SendEmailAsync(toEmail, subject, body, "Custom");
         }
 
-        // ✅ YENİ - Mevcut hesap bildirimi
         public async Task<bool> SendAccountExistsNotificationAsync(string toEmail)
         {
             try
             {
                 var subject = "Hesap Kaydı Denemesi - FormSepeti";
-                var forgotPasswordUrl = $"{_baseUrl}/Account/ForgotPassword"; // ✅ appsettings'ten al
+                var forgotPasswordUrl = $"{_baseUrl}/Account/ForgotPassword";
                 
                 var body = $@"
                     <html>
@@ -107,7 +109,6 @@ namespace FormSepeti.Services.Implementations
             }
         }
 
-        // ✅ YENİ - Form gönderim bildirimi
         public async Task<bool> SendFormSubmissionNotificationAsync(string toEmail, string formTitle, int submissionCount)
         {
             var subject = "Yeni Form Yanıtı Bildirimi";
@@ -132,30 +133,48 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
-                using (var smtpClient = new SmtpClient(_smtpHost, _smtpPort))
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(_fromName, _fromEmail));
+                message.To.Add(new MailboxAddress("", toEmail));
+                message.Subject = subject;
+
+                var bodyBuilder = new BodyBuilder
                 {
-                    smtpClient.EnableSsl = true;
-                    smtpClient.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
+                    HtmlBody = body
+                };
+                message.Body = bodyBuilder.ToMessageBody();
 
-                    var mailMessage = new MailMessage
-                    {
-                        From = new MailAddress(_fromEmail, _fromName),
-                        Subject = subject,
-                        Body = body,
-                        IsBodyHtml = true
-                    };
-
-                    mailMessage.To.Add(toEmail);
-                    await smtpClient.SendMailAsync(mailMessage);
-                    await LogEmail(null, toEmail, subject, emailType, true, null);
-                    _logger.LogInformation($"Email sent successfully to {toEmail}");
-                    return true;
+                using (var smtp = new SmtpClient())
+                {
+                    smtp.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                    await smtp.ConnectAsync(_smtpHost, _smtpPort, SecureSocketOptions.None);
+                    await smtp.AuthenticateAsync(_smtpUsername, _smtpPassword);
+                    await smtp.SendAsync(message);
+                    await smtp.DisconnectAsync(true);
                 }
+
+                await LogEmail(null, toEmail, subject, emailType, true, null);
+                _logger.LogInformation("Email sent successfully to {Email}", toEmail);
+                return true;
+            }
+            catch (SmtpCommandException ex)
+            {
+                var errorMsg = $"SMTP Command Error: {ex.Message}, StatusCode: {ex.StatusCode}";
+                await LogEmail(null, toEmail, subject, emailType, false, errorMsg);
+                _logger.LogError(ex, "SMTP Command Error for {Email}", toEmail);
+                return false;
+            }
+            catch (SmtpProtocolException ex)
+            {
+                var errorMsg = $"SMTP Protocol Error: {ex.Message}";
+                await LogEmail(null, toEmail, subject, emailType, false, errorMsg);
+                _logger.LogError(ex, "SMTP Protocol Error for {Email}", toEmail);
+                return false;
             }
             catch (Exception ex)
             {
                 await LogEmail(null, toEmail, subject, emailType, false, ex.Message);
-                _logger.LogError(ex, $"Failed to send email to {toEmail}");
+                _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
                 return false;
             }
         }
@@ -234,6 +253,9 @@ namespace FormSepeti.Services.Implementations
                 <a href='{resetLink}' class='button'>Şifremi Sıfırla</a>
             </div>
             <p style='margin-top: 20px;'>Link: {resetLink}</p>
+            <p style='color: #999; font-size: 12px; margin-top: 20px;'>
+                <strong>Not:</strong> Bu bağlantı 1 saat geçerlidir. Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.
+            </p>
         </div>
         <div class='footer'><p>&copy; 2024 FormSepeti</p></div>
     </div>
