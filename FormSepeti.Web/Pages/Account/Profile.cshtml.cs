@@ -39,6 +39,12 @@ namespace FormSepeti.Web.Pages.Account
         [BindProperty]
         public string? NewPhone { get; set; }
 
+        [BindProperty]
+        public string FirstName { get; set; }
+
+        [BindProperty]
+        public string LastName { get; set; }
+
         public string? SuccessMessage { get; set; }
         public string? ErrorMessage { get; set; }
 
@@ -64,17 +70,25 @@ namespace FormSepeti.Web.Pages.Account
 
             Email = user.Email;
             Phone = user.PhoneNumber;
+            FirstName = user.FirstName;
+            LastName = user.LastName;
             ProfilePhotoUrl = user.ProfilePhotoUrl;
             CreatedDate = user.CreatedDate.ToString("dd MMMM yyyy");
             LastLoginDate = user.LastLoginDate?.ToString("dd MMMM yyyy HH:mm") ?? "Hiç giriş yapılmadı";
             
-            // ✅ İKİ FARKLI DURUM
-            IsGoogleLogin = !string.IsNullOrEmpty(user.GoogleId); // Login provider
-            IsGoogleSheetsConnected = await _userService.IsGoogleSheetsConnectedAsync(user.GoogleId); // Sheets connection
+            IsGoogleLogin = !string.IsNullOrEmpty(user.GoogleId);
+            IsGoogleSheetsConnected = await _userService.IsGoogleSheetsConnectedAsync(user.GoogleId);
 
             TotalSubmissions = await _submissionRepository.GetCountByUserIdAsync(id);
             var activePackages = await _packageRepository.GetActiveByUserIdAsync(id);
             ActivePackages = activePackages.Count;
+
+            // ✅ YENİ: Eğer logout mesajı varsa, sadece login sayfasında gösterilmeli
+            // Profile sayfasında gereksiz mesajları temizle
+            if (TempData.ContainsKey("Success") && TempData["Success"]?.ToString() == "Başarıyla çıkış yaptınız.")
+            {
+                TempData.Remove("Success");
+            }
 
             return Page();
         }
@@ -107,6 +121,29 @@ namespace FormSepeti.Web.Pages.Account
                 ErrorMessage = "Telefon numarası güncellenemedi.";
                 return Page();
             }
+        }
+
+        public async Task<IActionResult> OnPostUpdateProfileAsync()
+        {
+            var id = GetUserId();
+            if (id == 0)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            var user = await _userService.GetUserByIdAsync(id);
+            if (user == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            user.FirstName = FirstName;
+            user.LastName = LastName;
+            
+            await _userService.UpdateUserAsync(user);
+            
+            TempData["Success"] = "Profil bilgileriniz güncellendi";
+            return RedirectToPage();
         }
     }
 }

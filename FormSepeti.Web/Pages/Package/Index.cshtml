@@ -4,176 +4,1022 @@
     ViewData["Title"] = "Paketler";
 }
 
-<div class="container py-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h1 class="display-4 fw-bold text-primary mb-2">Paketlerimiz</h1>
-            <p class="text-muted">İhtiyacınıza uygun paketi seçin ve hemen başlayın</p>
-        </div>
-    </div>
-
-    <!-- ✅ Filtreleme ve Sıralama Bölümü -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <form method="get" class="row g-3 align-items-end">
-                        <!-- Filtreleme -->
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-funnel me-2"></i>Filtrele
-                            </label>
-                            <select name="filter" class="form-select" onchange="this.form.submit()">
-                                <option value="all" selected="@(Model.Filter == "all")">Tüm Paketler</option>
-                                <option value="owned" selected="@(Model.Filter == "owned")">Sahip Olduklarım</option>
-                                <option value="available" selected="@(Model.Filter == "available")">Satın Alınabilir</option>
-                                <option value="free" selected="@(Model.Filter == "free")">Ücretsiz Paketler</option>
-                            </select>
-                        </div>
-
-                        <!-- Sıralama Kriteri -->
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-sort-down me-2"></i>Sırala
-                            </label>
-                            <select name="sortBy" class="form-select" onchange="this.form.submit()">
-                                <option value="name" selected="@(Model.SortBy == "name")">Paket Adı</option>
-                                <option value="price" selected="@(Model.SortBy == "price")">Fiyat</option>
-                                <option value="owned" selected="@(Model.SortBy == "owned")">Sahiplik Durumu</option>
-                            </select>
-                        </div>
-
-                        <!-- Sıralama Yönü -->
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-arrow-down-up me-2"></i>Sıralama Yönü
-                            </label>
-                            <select name="sortOrder" class="form-select" onchange="this.form.submit()">
-                                <option value="asc" selected="@(Model.SortOrder == "asc")">Artan (A-Z, 0-9)</option>
-                                <option value="desc" selected="@(Model.SortOrder == "desc")">Azalan (Z-A, 9-0)</option>
-                            </select>
-                        </div>
-                    </form>
-
-                    <!-- Sonuç Sayısı -->
-                    <div class="mt-3 text-muted small">
-                        <i class="bi bi-info-circle me-1"></i>
-                        <strong>@Model.Packages.Count</strong> paket gösteriliyor
-                    </div>
-                </div>
+<!-- Hero Section -->
+<div class="packages-hero">
+    <div class="container">
+        <div class="row align-items-center py-5">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="hero-title mb-3">
+                    <i class="bi bi-box-seam me-3"></i>
+                    Size Özel Paketler
+                </h1>
+                <p class="hero-subtitle mb-4">
+                    İhtiyacınıza uygun paketi seçin, formlarınızı kullanmaya başlayın
+                </p>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Paketler -->
+<div class="container py-4">
+
+    <!-- Search & Filter Section -->
+    <div class="search-filter-section mb-4">
+        <form method="get" id="filterForm">
+
+            <!-- Search Bar - Prominent -->
+            <div class="search-bar-wrapper mb-4">
+                <div class="search-bar">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text"
+                           name="searchQuery"
+                           class="search-input"
+                           placeholder="Paket veya form adı ile ara... (örn: Emlak, Randevu)"
+                           value="@Model.SearchQuery">
+                    <button type="submit" class="search-btn">
+                        Ara
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                    {
+                        <a href="/Package/Index" class="clear-search" title="Aramayı Temizle">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Filters - Compact Pills -->
+            <div class="filters-wrapper">
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="bi bi-funnel"></i>
+                        Filtre:
+                    </label>
+                    <select name="filter" class="filter-select" onchange="resetPageAndSubmit()">
+                        <option value="all" selected="@(Model.Filter == "all")">Tümü</option>
+                        <option value="owned" selected="@(Model.Filter == "owned")">Sahip Olduklarım</option>
+                        <option value="available" selected="@(Model.Filter == "available")">Satın Alınabilir</option>
+                        <option value="free" selected="@(Model.Filter == "free")">Ücretsiz</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="bi bi-sort-down"></i>
+                        Sırala:
+                    </label>
+                    <select name="sortBy" class="filter-select" onchange="resetPageAndSubmit()">
+                        <option value="name" selected="@(Model.SortBy == "name")">İsim</option>
+                        <option value="price" selected="@(Model.SortBy == "price")">Fiyat</option>
+                        <option value="owned" selected="@(Model.SortBy == "owned")">Sahiplik</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="bi bi-arrow-down-up"></i>
+                        Yön:
+                    </label>
+                    <select name="sortOrder" class="filter-select" onchange="resetPageAndSubmit()">
+                        <option value="asc" selected="@(Model.SortOrder == "asc")">A-Z</option>
+                        <option value="desc" selected="@(Model.SortOrder == "desc")">Z-A</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="bi bi-grid-3x3"></i>
+                        Göster:
+                    </label>
+                    <select name="pageSize" class="filter-select" onchange="resetPageAndSubmit()">
+                        <option value="6" selected="@(Model.PageSize == 6)">6</option>
+                        <option value="9" selected="@(Model.PageSize == 9)">9</option>
+                        <option value="12" selected="@(Model.PageSize == 12)">12</option>
+                        <option value="18" selected="@(Model.PageSize == 18)">18</option>
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" name="pageNumber" id="pageNumberInput" value="@Model.PageNumber">
+        </form>
+
+        <!-- Results Info -->
+        <div class="results-info">
+            @if (Model.TotalItems > 0)
+            {
+                <span class="results-count">
+                    <strong>@Model.StartItem</strong>-<strong>@Model.EndItem</strong> / <strong>@Model.TotalItems</strong> paket
+                </span>
+            }
+            else
+            {
+                <span class="results-count">Sonuç bulunamadı</span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+            {
+                <span class="search-badge">
+                    <i class="bi bi-search"></i> "@Model.SearchQuery"
+                </span>
+            }
+        </div>
+    </div>
+
+    <!-- Packages Grid -->
     @if (Model.Packages == null || !Model.Packages.Any())
     {
-        <div class="row">
-            <div class="col-12">
-                <div class="alert alert-info text-center" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>
-                    Seçtiğiniz filtreye uygun paket bulunmamaktadır.
-                </div>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-inbox"></i>
             </div>
+            <h3 class="empty-title">
+                @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                {
+                    <span>Arama sonucu bulunamadı</span>
+                }
+                else
+                {
+                    <span>Henüz paket bulunmuyor</span>
+                }
+            </h3>
+            <p class="empty-text">
+                @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                {
+                    <span>"<strong>@Model.SearchQuery</strong>" için eşleşme bulunamadı</span>
+                }
+                else
+                {
+                    <span>Filtreleri değiştirerek tekrar deneyin</span>
+                }
+            </p>
+            <a href="/Package/Index" class="btn btn-primary">
+                <i class="bi bi-arrow-left me-2"></i>Tüm Paketler
+            </a>
         </div>
     }
     else
     {
-        <div class="row g-4">
+        <div class="packages-grid">
             @foreach (var package in Model.Packages)
             {
-                <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 shadow-sm border-0 package-card @(package.IsOwned ? "owned-package" : "")">
-                        @* ✅ Badge'i sağ üst köşeye taşıdım *@
-                        @if (package.IsOwned)
-                        {
-                            <div class="owned-badge">
-                                <span class="badge bg-success">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Sahibisiz
-                                </span>
-                            </div>
-                        }
-                        
-                        <div class="card-body d-flex flex-column pt-4">
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <h5 class="card-title fw-bold text-dark mb-0">@package.PackageName</h5>
-                                    @if (package.Price == 0)
-                                    {
-                                        <span class="badge bg-info">Ücretsiz</span>
-                                    }
-                                </div>
-                                <p class="card-text text-muted small">@package.Description</p>
-                            </div>
-                            
-                            <div class="mt-auto">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div>
-                                        <span class="h3 fw-bold text-primary mb-0">
-                                            @if (package.Price == 0)
-                                            {
-                                                <span>₺0</span>
-                                            }
-                                            else
-                                            {
-                                                <span>₺@package.Price.ToString("N2")</span>
-                                            }
-                                        </span>
-                                    </div>
-                                </div>
-                                
+                <div class="package-card @(package.IsOwned ? "owned" : "")">
+
+                    <!-- Header -->
+                    <div class="package-header">
+                        <div class="package-title-row">
+                            <h3 class="package-title">@package.PackageName</h3>
+                            <div class="package-badges">
                                 @if (package.IsOwned)
                                 {
-                                    <a href="/Package/Detail/@package.PackageId" class="btn btn-outline-success w-100">
-                                        <i class="bi bi-eye me-2"></i>Detayları Görüntüle
-                                    </a>
+                                    <span class="badge badge-owned">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </span>
                                 }
-                                else
+                                @if (package.Price == 0)
                                 {
-                                    <a href="/Package/Detail/@package.PackageId" class="btn btn-primary w-100">
-                                        <i class="bi bi-box-arrow-in-right me-2"></i>Detayları Gör
-                                    </a>
+                                    <span class="badge badge-free">Ücretsiz</span>
                                 }
                             </div>
                         </div>
+                        <p class="package-description">@package.Description</p>
                     </div>
+
+                    <!-- Content -->
+                    <div class="package-content">
+                        @if (package.FormCount > 0)
+                        {
+                            <div class="forms-section">
+                                <div class="forms-header">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                    <span>@package.FormCount Form</span>
+                                </div>
+                                <div class="forms-list">
+                                    @foreach (var formName in package.FormNames.Take(3))
+                                    {
+                                        <div class="form-item">
+                                            <i class="bi bi-check2"></i>
+                                            <span>@formName</span>
+                                        </div>
+                                    }
+                                    @if (package.FormNames.Count > 3)
+                                    {
+                                        <div class="form-item more">
+                                            <i class="bi bi-plus-circle"></i>
+                                            <span>@(package.FormNames.Count - 3) form daha</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="package-footer">
+                        <div class="package-price">
+                            @if (package.Price == 0)
+                            {
+                                <span class="price-value free">₺0</span>
+                                <span class="price-period">Ücretsiz</span>
+                            }
+                            else
+                            {
+                                <span class="price-value">₺@package.Price.ToString("N0")</span>
+                                <span class="price-period">/ tek seferlik</span>
+                            }
+                        </div>
+
+                        @if (package.IsOwned)
+                        {
+                            <a href="/Package/Detail/@package.PackageId" class="btn-card btn-owned">
+                                <i class="bi bi-eye"></i>
+                                Detaylar
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="/Package/Detail/@package.PackageId" class="btn-card btn-primary">
+                                İncele
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        }
+                    </div>
+
                 </div>
             }
         </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="pagination-wrapper">
+                <nav class="pagination-nav">
+
+                    <a href="@GetPageUrl(1)"
+                       class="page-btn @(!Model.HasPreviousPage ? "disabled" : "")"
+                       aria-label="İlk sayfa">
+                        <i class="bi bi-chevron-bar-left"></i>
+                    </a>
+
+                    <a href="@GetPageUrl(Model.PageNumber - 1)"
+                       class="page-btn @(!Model.HasPreviousPage ? "disabled" : "")"
+                       aria-label="Önceki">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+
+                    <div class="page-numbers">
+                        @foreach (var pageNum in Model.PageNumbers)
+                        {
+                            @if (pageNum == -1)
+                            {
+                                <span class="page-dots">...</span>
+                            }
+                            else
+                            {
+                                <a href="@GetPageUrl(pageNum)"
+                                   class="page-number @(pageNum == Model.PageNumber ? "active" : "")">
+                                    @pageNum
+                                </a>
+                            }
+                        }
+                    </div>
+
+                    <a href="@GetPageUrl(Model.PageNumber + 1)"
+                       class="page-btn @(!Model.HasNextPage ? "disabled" : "")"
+                       aria-label="Sonraki">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+
+                    <a href="@GetPageUrl(Model.TotalPages)"
+                       class="page-btn @(!Model.HasNextPage ? "disabled" : "")"
+                       aria-label="Son sayfa">
+                        <i class="bi bi-chevron-bar-right"></i>
+                    </a>
+
+                </nav>
+
+                <div class="pagination-info">
+                    Sayfa @Model.PageNumber / @Model.TotalPages
+                </div>
+            </div>
+        }
     }
 </div>
 
+@functions {
+    string GetPageUrl(int pageNumber)
+    {
+        var queryParams = new Dictionary<string, string>
+        {
+            { "pageNumber", pageNumber.ToString() },
+            { "pageSize", Model.PageSize.ToString() },
+            { "sortBy", Model.SortBy },
+            { "sortOrder", Model.SortOrder },
+            { "filter", Model.Filter }
+        };
+
+        if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            queryParams.Add("searchQuery", Model.SearchQuery);
+        }
+
+        var queryString = string.Join("&", queryParams.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+        return $"/Package/Index?{queryString}";
+    }
+}
+
+<script>
+    function resetPageAndSubmit() {
+        document.getElementById('pageNumberInput').value = '1';
+        document.getElementById('filterForm').submit();
+    }
+</script>
+
 <style>
-    .owned-package {
-        border: 2px solid #28a745 !important;
-        background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, rgba(40, 167, 69, 0.02) 100%);
-    }
-    
-    .owned-package:hover {
-        border-color: #218838 !important;
-        box-shadow: 0 8px 24px rgba(40, 167, 69, 0.2) !important;
-    }
+    /* ==========================================
+       MODERN PACKAGE INDEX STYLES
+       ========================================== */
 
-    .package-card {
+    /* Hero Section */
+    .packages-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
         position: relative;
+        overflow: hidden;
+    }
+
+        .packages-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.3;
+        }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.95;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Search & Filter Section */
+    .search-filter-section {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Search Bar */
+    .search-bar-wrapper {
+        position: relative;
+    }
+
+    .search-bar {
+        display: flex;
+        align-items: center;
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
         transition: all 0.3s ease;
-        overflow: hidden; /* ✅ Badge'in kart dışına taşmasını önler */
+        position: relative;
     }
 
-    .package-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        .search-bar:focus-within {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+    .search-icon {
+        color: #6c757d;
+        font-size: 1.25rem;
+        margin-right: 0.75rem;
     }
 
-    /* Form select styling */
-    .form-select:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    .search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 1rem;
+        color: #212529;
     }
 
-    /* ✅ Kart içeriğine üstten boşluk (badge için alan bırak) */
-    .owned-package .card-body {
-        padding-top: 1.25rem;
+        .search-input::placeholder {
+            color: #6c757d;
+        }
+
+    .search-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.625rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-left: 0.5rem;
+    }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+    .clear-search {
+        color: #6c757d;
+        font-size: 1.25rem;
+        margin-left: 0.5rem;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+        .clear-search:hover {
+            color: #dc3545;
+        }
+
+    /* Filters */
+    .filters-wrapper {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin: 0;
+    }
+
+    .filter-select {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #495057;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .filter-select:hover {
+            border-color: #667eea;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+    /* Results Info */
+    .results-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .results-count strong {
+        color: #212529;
+        font-weight: 600;
+    }
+
+    .search-badge {
+        background: #667eea;
+        color: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    /* Packages Grid */
+    .packages-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    /* Package Card */
+    .package-card {
+        background: white;
+        border-radius: 16px;
+        border: 2px solid #e9ecef;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+        .package-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+            border-color: #667eea;
+        }
+
+        .package-card.owned {
+            border-color: #28a745;
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.03) 0%, white 100%);
+        }
+
+    /* Card Header */
+    .package-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .package-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .package-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #212529;
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .package-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .badge-owned {
+        background: #28a745;
+        color: white;
+    }
+
+    .badge-free {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .package-description {
+        font-size: 0.875rem;
+        color: #6c757d;
+        line-height: 1.6;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Card Content */
+    .package-content {
+        padding: 1.5rem;
+        flex: 1;
+    }
+
+    .forms-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .forms-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.75rem;
+    }
+
+    .forms-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #495057;
+        padding: 0.375rem 0;
+    }
+
+        .form-item i {
+            color: #28a745;
+            flex-shrink: 0;
+        }
+
+        .form-item.more {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+            .form-item.more i {
+                color: #667eea;
+            }
+
+    /* Card Footer */
+    .package-footer {
+        padding: 1.5rem;
+        border-top: 1px solid #f1f3f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .package-price {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .price-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #212529;
+        line-height: 1;
+    }
+
+        .price-value.free {
+            color: #28a745;
+        }
+
+    .price-period {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    .btn-card {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+    .btn-owned {
+        background: transparent;
+        color: #28a745;
+        border: 2px solid #28a745;
+    }
+
+        .btn-owned:hover {
+            background: #28a745;
+            color: white;
+        }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.75rem;
+    }
+
+    .empty-text {
+        font-size: 1rem;
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Pagination */
+    .pagination-wrapper {
+        margin-top: 3rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .pagination-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-btn,
+    .page-number {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        background: white;
+        color: #495057;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+        .page-btn:hover:not(.disabled),
+        .page-number:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .page-number.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+        }
+
+        .page-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+    .page-numbers {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .page-dots {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+    }
+
+    .pagination-info {
+        font-size: 0.875rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .packages-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filters-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            justify-content: space-between;
+        }
+
+        .package-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-card {
+            justify-content: center;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1199px) {
+        .packages-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* ========================================
+       DARK THEME SUPPORT FOR PACKAGE INDEX
+       ========================================== */
+
+    [data-theme="dark"] .packages-hero {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    }
+
+    [data-theme="dark"] .search-filter-section {
+        background: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .search-bar {
+        background: rgba(15, 23, 42, 0.6);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+        [data-theme="dark"] .search-bar:focus-within {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: #667eea;
+        }
+
+    [data-theme="dark"] .search-input {
+        color: #f1f5f9 !important;
+    }
+
+        [data-theme="dark"] .search-input::placeholder {
+            color: #94a3b8 !important;
+        }
+
+    [data-theme="dark"] .search-icon {
+        color: #94a3b8;
+    }
+
+    [data-theme="dark"] .filter-label {
+        color: #cbd5e1 !important;
+    }
+
+    [data-theme="dark"] .filter-select {
+        background: rgba(15, 23, 42, 0.6);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #f1f5f9 !important;
+    }
+
+        [data-theme="dark"] .filter-select option {
+            background: #1e293b;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .filter-select:hover {
+            border-color: #667eea;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+    [data-theme="dark"] .results-info {
+        color: #94a3b8 !important;
+        border-top-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .results-count,
+    [data-theme="dark"] .results-count strong {
+        color: #cbd5e1 !important;
+    }
+
+    [data-theme="dark"] .package-card {
+        background: rgba(30, 41, 59, 0.8);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+        [data-theme="dark"] .package-card:hover {
+            border-color: #667eea;
+            background: rgba(30, 41, 59, 0.95);
+        }
+
+        [data-theme="dark"] .package-card.owned {
+            border-color: #28a745;
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(30, 41, 59, 0.8) 100%);
+        }
+
+    [data-theme="dark"] .package-header {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .package-title {
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme="dark"] .package-description {
+        color: #94a3b8 !important;
+    }
+
+    [data-theme="dark"] .forms-section {
+        background: rgba(15, 23, 42, 0.6);
+    }
+
+    [data-theme="dark"] .forms-header {
+        color: #cbd5e1 !important;
+    }
+
+    [data-theme="dark"] .form-item {
+        color: #94a3b8 !important;
+    }
+
+        [data-theme="dark"] .form-item span {
+            color: #cbd5e1 !important;
+        }
+
+    [data-theme="dark"] .package-footer {
+        border-top-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .price-value {
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme="dark"] .price-period {
+        color: #94a3b8 !important;
+    }
+
+    [data-theme="dark"] .empty-icon {
+        color: #475569;
+    }
+
+    [data-theme="dark"] .empty-title {
+        color: #cbd5e1 !important;
+    }
+
+    [data-theme="dark"] .empty-text {
+        color: #94a3b8 !important;
+    }
+
+    [data-theme="dark"] .page-btn,
+    [data-theme="dark"] .page-number {
+        background: rgba(30, 41, 59, 0.8);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #cbd5e1 !important;
+    }
+
+        [data-theme="dark"] .page-btn:hover:not(.disabled),
+        [data-theme="dark"] .page-number:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea !important;
+        }
+
+        [data-theme="dark"] .page-number.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+        }
+
+    [data-theme="dark"] .page-dots {
+        color: #64748b;
+    }
+
+    [data-theme="dark"] .pagination-info {
+        color: #94a3b8 !important;
     }
 </style>
-

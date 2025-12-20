@@ -23,8 +23,7 @@
                     }
                     else
                     {
-                        <div class="avatar-placeholder rounded-circle mx-auto mb-3" 
-                             style="width: 150px; height: 150px; background-color: #6366f1; color: white; font-size: 3rem; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        <div class="avatar-placeholder-large rounded-circle mx-auto mb-3">
                             @Model.Email?.Substring(0, 1).ToUpper()
                         </div>
                     }
@@ -126,35 +125,61 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label text-light-muted">
-                                        <i class="fas fa-envelope me-2"></i>Email
-                                    </label>
-                                    <input type="text" class="form-control" value="@Model.Email" readonly>
-                                </div>
+                            <form method="post" asp-page-handler="UpdateProfile">
+                                <div class="row g-3">
+                                    @* ✅ YENİ: Ad ve Soyad buraya taşındı *@
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            <i class="fas fa-user me-2"></i>Ad
+                                        </label>
+                                        <input type="text" class="form-control" asp-for="FirstName" placeholder="Adınız">
+                                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            <i class="fas fa-user me-2"></i>Soyad
+                                        </label>
+                                        <input type="text" class="form-control" asp-for="LastName" placeholder="Soyadınız">
+                                        <span asp-validation-for="LastName" class="text-danger"></span>
+                                    </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label text-light-muted">
-                                        <i class="fas fa-phone me-2"></i>Telefon
-                                    </label>
-                                    <input type="text" class="form-control" value="@(Model.Phone ?? "Belirtilmemiş")" readonly>
-                                </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-light-muted">
+                                            <i class="fas fa-envelope me-2"></i>Email
+                                        </label>
+                                        <input type="text" class="form-control" value="@Model.Email" readonly>
+                                    </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label text-light-muted">
-                                        <i class="fas fa-calendar-plus me-2"></i>Kayıt Tarihi
-                                    </label>
-                                    <input type="text" class="form-control" value="@Model.CreatedDate" readonly>
-                                </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-light-muted">
+                                            <i class="fas fa-phone me-2"></i>Telefon
+                                        </label>
+                                        <input type="text" class="form-control" value="@(Model.Phone ?? "Belirtilmemiş")" readonly>
+                                    </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label text-light-muted">
-                                        <i class="fas fa-sign-in-alt me-2"></i>Son Giriş
-                                    </label>
-                                    <input type="text" class="form-control" value="@Model.LastLoginDate" readonly>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-light-muted">
+                                            <i class="fas fa-calendar-plus me-2"></i>Kayıt Tarihi
+                                        </label>
+                                        <input type="text" class="form-control" value="@Model.CreatedDate" readonly>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label text-light-muted">
+                                            <i class="fas fa-sign-in-alt me-2"></i>Son Giriş
+                                        </label>
+                                        <input type="text" class="form-control" value="@Model.LastLoginDate" readonly>
+                                    </div>
+
+                                    @* ✅ Güncelle butonu *@
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Ad Soyad Güncelle
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
 
@@ -178,7 +203,7 @@
                                            value="@Model.Phone">
                                 </div>
                                 <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-save me-2"></i>Güncelle
+                                    <i class="fas fa-save me-2"></i>Telefon Güncelle
                                 </button>
                             </form>
                         </div>

@@ -3,8 +3,28 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- ✅ YENİ: SEO Meta Tags -->
+    <meta name="description" content="FormSepeti - Form verilerinizi otomatik olarak Google Sheets'e kaydedin">
+    <meta name="keywords" content="form, google sheets, otomatiksyon, veri toplama">
+    <meta name="author" content="FormSepeti">
+    
+    <!-- ✅ YENİ: Open Graph Tags (Sosyal medya paylaşımları için) -->
+    <meta property="og:title" content="@ViewData["Title"] - FormSepeti">
+    <meta property="og:description" content="Form verilerinizi otomatik olarak Google Sheets'e kaydedin">
+    <meta property="og:type" content="website">
+    
+    <!-- ✅ YENİ: Favicon -->
+    <link rel="icon" type="image/png" href="~/favicon.png">
+    
     <title>@ViewData["Title"] - FormSepeti</title>
 
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
     <!-- Bootstrap 5.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -12,13 +32,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-</head>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    </head>
 <body>
     <!-- Modern Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -72,7 +93,19 @@
                                 @{
                                     var photoUrl = User.FindFirst("ProfilePhotoUrl")?.Value;
                                     var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "User";
-                                    var initials = email.Length > 0 ? email[0].ToString().ToUpper() : "U";
+                                    
+                                    // ✅ YENİ: FirstName ve LastName claim'lerini al
+                                    var firstName = User.FindFirst("FirstName")?.Value;
+                                    var lastName = User.FindFirst("LastName")?.Value;
+                                    
+                                    // ✅ YENİ: Ad Soyad varsa göster, yoksa email'in ilk harfi
+                                    var displayName = !string.IsNullOrWhiteSpace(firstName) && !string.IsNullOrWhiteSpace(lastName)
+                                        ? $"{firstName} {lastName}"
+                                        : email;
+                                    
+                                    var initials = !string.IsNullOrWhiteSpace(firstName) && !string.IsNullOrWhiteSpace(lastName)
+                                        ? $"{firstName[0]}{lastName[0]}".ToUpper()
+                                        : email.Length > 0 ? email[0].ToString().ToUpper() : "U";
                                 }
                                 
                                 @if (!string.IsNullOrEmpty(photoUrl))
@@ -86,13 +119,12 @@
                                 }
                                 else
                                 {
-                                    <div class="avatar-placeholder rounded-circle me-2 d-inline-flex align-items-center justify-content-center"
-                                         style="width: 32px; height: 32px; background-color: #6366f1; color: white; font-weight: bold;">
+                                    <div class="avatar-placeholder rounded-circle me-2 d-inline-flex align-items-center justify-content-center">
                                         @initials
                                     </div>
                                 }
                                 
-                                <span>@email</span>
+                                <span>@displayName</span>
                             </a>
                             
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">

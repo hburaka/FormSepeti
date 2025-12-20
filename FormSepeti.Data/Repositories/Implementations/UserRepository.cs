@@ -65,5 +65,17 @@ namespace FormSepeti.Data.Repositories.Implementations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.GoogleId == googleId);
         }
+
+        public async Task<User?> GetByTCKimlikNoAsync(string tcKimlikNo)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.TCKimlikNo == tcKimlikNo && u.IsActive);
+        }
+
+        public async Task<User?> GetByTaxNumberAsync(string taxNumber)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.TaxNumber == taxNumber && u.IsActive);
+        }
     }
 }

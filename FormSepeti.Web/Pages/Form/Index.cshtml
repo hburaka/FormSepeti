@@ -14,12 +14,9 @@
                     <h2 class="mb-1">
                         <i class="bi bi-folder2-open text-primary me-2"></i>@Model.GroupName
                     </h2>
-                    <p class="text-muted mb-0">Bu gruptaki formları görüntüleyin ve doldurun</p>
+                    <p class="text-light-secondary mb-0">Bu gruptaki formları görüntüleyin ve doldurun</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a class="btn btn-outline-secondary" asp-page="/Dashboard/SelectGroup">
-                        <i class="bi bi-arrow-left-right me-2"></i>Grup Değiştir
-                    </a>
                     @if (!string.IsNullOrEmpty(Model.SpreadsheetUrl))
                     {
                         <a class="btn btn-success" href="@Model.SpreadsheetUrl" target="_blank">
@@ -36,7 +33,7 @@
     {
         <div class="row mb-4">
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm">
+                <div class="card border-0 shadow-sm stats-card">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -45,15 +42,15 @@
                                 </div>
                             </div>
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="text-muted mb-0">Toplam Form</h6>
-                                <h3 class="mb-0">@Model.Forms.Count()</h3>
+                                <h6 class="stats-label">Toplam Form</h6>
+                                <h3 class="stats-value">@Model.Forms.Count()</h3>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm">
+                <div class="card border-0 shadow-sm stats-card">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -62,15 +59,15 @@
                                 </div>
                             </div>
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="text-muted mb-0">Ücretsiz</h6>
-                                <h3 class="mb-0">@Model.Forms.Count(f => f.IsFree)</h3>
+                                <h6 class="stats-label">Ücretsiz</h6>
+                                <h3 class="stats-value">@Model.Forms.Count(f => f.IsFree)</h3>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm">
+                <div class="card border-0 shadow-sm stats-card">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -79,8 +76,8 @@
                                 </div>
                             </div>
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="text-muted mb-0">Erişilebilir</h6>
-                                <h3 class="mb-0">@Model.Forms.Count(f => f.HasAccess)</h3>
+                                <h6 class="stats-label">Erişilebilir</h6>
+                                <h3 class="stats-value">@Model.Forms.Count(f => f.HasAccess)</h3>
                             </div>
                         </div>
                     </div>
@@ -95,10 +92,12 @@
         <div class="row">
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-body text-center py-5">
-                        <i class="bi bi-inbox display-1 text-muted mb-3"></i>
-                        <h4 class="text-muted">Bu grupta henüz form bulunmuyor</h4>
-                        <p class="text-muted mb-4">Yeni form eklemek için admin paneline gidin veya farklı bir grup seçin.</p>
+                    <div class="card-body empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <h4 class="empty-title">Bu grupta henüz form bulunmuyor</h4>
+                        <p class="empty-text">Yeni form eklemek için admin paneline gidin veya farklı bir grup seçin.</p>
                         <a class="btn btn-primary" asp-page="/Dashboard/SelectGroup">
                             <i class="bi bi-arrow-left-right me-2"></i>Başka Grup Seç
                         </a>
@@ -116,7 +115,7 @@
                     <div class="card h-100 border-0 shadow-sm form-card @(f.HasAccess ? "" : "locked-form")">
                         <div class="card-body d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="card-title mb-0">@f.Title</h5>
+                                <h5 class="card-title form-card-title mb-0">@f.Title</h5>
                                 @if (f.IsFree)
                                 {
                                     <span class="badge bg-success">
@@ -131,7 +130,7 @@
                                 }
                                 else
                                 {
-                                    <span class="badge bg-warning">
+                                    <span class="badge bg-warning text-dark">
                                         <i class="bi bi-lock-fill me-1"></i>Kilitli
                                     </span>
                                 }
@@ -139,18 +138,17 @@
                             
                             @if (!string.IsNullOrEmpty(f.Description))
                             {
-                                <p class="text-muted small mb-4">@f.Description</p>
+                                <p class="form-card-description mb-4">@f.Description</p>
                             }
                             else
                             {
-                                <p class="text-muted small mb-4 fst-italic">Açıklama bulunmuyor</p>
+                                <p class="form-card-description-empty mb-4">Açıklama bulunmuyor</p>
                             }
                             
                             <div class="mt-auto">
                                 <div class="d-grid gap-2">
                                     @if (f.HasAccess)
                                     {
-                                        @* ✅ SESSION-BASED: Form kullanarak POST ile session'a kaydet *@
                                         <form method="post" asp-page-handler="SetActiveForm">
                                             <input type="hidden" name="formId" value="@f.Id" />
                                             <input type="hidden" name="groupId" value="@Model.GroupId" />
@@ -170,13 +168,13 @@
                                         else
                                         {
                                             <button class="btn btn-outline-secondary btn-sm" disabled>
-                                                <i class="bi bi-inbox me-2"></i>Daha Form Göndermediniz
+                                                <i class="bi bi-inbox me-2"></i>Henüz Gönderim Yok
                                             </button>
                                         }
                                     }
                                     else
                                     {
-                                        <button class="btn btn-warning" disabled>
+                                        <button class="btn btn-warning text-dark" disabled>
                                             <i class="bi bi-lock me-2"></i>Erişim İzni Yok
                                         </button>
                                         <a class="btn btn-outline-primary btn-sm" asp-page="/Package/Index">
@@ -192,22 +190,3 @@
         </div>
     }
 </div>
-
-<style>
-    .locked-form {
-        opacity: 0.7;
-        position: relative;
-    }
-    
-    .locked-form::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 193, 7, 0.02) 100%);
-        pointer-events: none;
-        border-radius: inherit;
-    }
-</style>

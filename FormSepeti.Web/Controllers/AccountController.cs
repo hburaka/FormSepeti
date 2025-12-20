@@ -86,7 +86,7 @@ namespace FormSepeti.Web.Controllers
                     name ?? email.Split('@')[0], 
                     accessToken, 
                     refreshToken,
-                    photoUrl); // ✅ EKLENDI
+                    photoUrl);
                 
                 if (user == null)
                 {
@@ -104,6 +104,17 @@ namespace FormSepeti.Web.Controllers
                     new Claim("Email", user.Email ?? ""),
                     new Claim("LoginProvider", "Google")
                 };
+                
+                // ✅ YENİ: FirstName ve LastName claim'leri ekle
+                if (!string.IsNullOrWhiteSpace(user.FirstName))
+                {
+                    claims.Add(new Claim("FirstName", user.FirstName));
+                }
+
+                if (!string.IsNullOrWhiteSpace(user.LastName))
+                {
+                    claims.Add(new Claim("LastName", user.LastName));
+                }
                 
                 // ✅ PHOTO URL'İ CLAIM OLARAK EKLE (view'larda kullanmak için)
                 if (!string.IsNullOrEmpty(user.ProfilePhotoUrl))
@@ -147,23 +158,19 @@ namespace FormSepeti.Web.Controllers
         {
             var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
             
-            // Cookie authentication'dan çıkış yap
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            
-            // Session'ı temizle
             HttpContext.Session.Clear();
             
             _logger.LogInformation($"✅ User logged out: {userEmail}");
             
-            TempData["Success"] = "Başarıyla çıkış yaptınız.";
-            return RedirectToPage("/Account/Login");
+            // ✅ Query string ile mesaj gönder (TempData yerine)
+            return RedirectToPage("/Account/Login", new { loggedOut = true });
         }
 
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> LogoutGet()
         {
-            // GET request için de çıkış yapabilmek amacıyla
             var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
             
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -171,7 +178,6 @@ namespace FormSepeti.Web.Controllers
             
             _logger.LogInformation($"✅ User logged out: {userEmail}");
             
-            TempData["Success"] = "Başarıyla çıkış yaptınız.";
             return RedirectToPage("/Account/Login");
         }
     }

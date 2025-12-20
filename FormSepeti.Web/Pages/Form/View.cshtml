@@ -132,50 +132,6 @@
     </div>
 </div>
 
-<style>
-    .form-iframe-container {
-        position: relative;
-        width: 100%;
-        padding-top: 75%; /* 4:3 Aspect Ratio */
-        border-radius: 0 0 16px 16px;
-        overflow: hidden;
-        background: rgba(0, 0, 0, 0.2);
-    }
-
-    .jotform-iframe {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
-
-    .info-card {
-        transition: all 0.3s ease;
-    }
-
-    .info-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .info-icon {
-        width: 60px;
-        height: 60px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(99, 102, 241, 0.1);
-        border-radius: 12px;
-    }
-
-    code {
-        font-size: 0.85rem;
-        word-break: break-all;
-    }
-</style>
-
 <script>
     // JotForm iframe auto-resize & submission tracking
     window.addEventListener('message', function(event) {

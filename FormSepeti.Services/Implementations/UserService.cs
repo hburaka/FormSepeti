@@ -15,7 +15,7 @@ namespace FormSepeti.Services.Implementations
     {
         private readonly IUserRepository _userRepository;
         private readonly IEmailService _emailService;
-        private readonly IEncryptionService _encryptionService; // ✅ EKLENDİ
+        private readonly IEncryptionService _encryptionService; 
         private readonly IConfiguration _configuration;
         private readonly ILogger<UserService> _logger;
         private readonly int _activationTokenExpiryHours;
@@ -23,13 +23,13 @@ namespace FormSepeti.Services.Implementations
         public UserService(
             IUserRepository userRepository,
             IEmailService emailService,
-            IEncryptionService encryptionService, // ✅ EKLENDİ
+            IEncryptionService encryptionService, 
             IConfiguration configuration,
             ILogger<UserService> logger)
         {
             _userRepository = userRepository;
             _emailService = emailService;
-            _encryptionService = encryptionService; // ✅ EKLENDİ
+            _encryptionService = encryptionService; 
             _configuration = configuration;
             _logger = logger;
             _activationTokenExpiryHours = int.Parse(configuration["Application:ActivationTokenExpiryHours"] ?? "24");
@@ -504,7 +504,7 @@ namespace FormSepeti.Services.Implementations
             string name, 
             string accessToken, 
             string refreshToken,
-            string? photoUrl = null) // ✅ EKLENDİ
+            string? photoUrl = null) 
         {
             try
             {
@@ -567,16 +567,23 @@ namespace FormSepeti.Services.Implementations
                 }
                 
                 // 3. Yeni kullanıcı oluştur
+                // ✅ YENİ: Google'dan gelen ismi parçala
+                var nameParts = name?.Split(' ', 2) ?? Array.Empty<string>();
+                var firstName = nameParts.Length > 0 ? nameParts[0] : null;
+                var lastName = nameParts.Length > 1 ? nameParts[1] : null;
+                
                 var newUser = new User
                 {
                     Email = email.ToLower().Trim(),
                     GoogleId = googleId,
+                    FirstName = firstName,  
+                    LastName = lastName,  
                     GoogleAccessToken = _encryptionService.Encrypt(accessToken),
                     GoogleRefreshToken = string.IsNullOrEmpty(refreshToken) 
                         ? null 
                         : _encryptionService.Encrypt(refreshToken),
                     GoogleTokenExpiry = DateTime.UtcNow.AddHours(1),
-                    ProfilePhotoUrl = photoUrl, // ✅ EKLENDI
+                    ProfilePhotoUrl = photoUrl,
                     IsActivated = true,
                     IsActive = true,
                     CreatedDate = DateTime.UtcNow,

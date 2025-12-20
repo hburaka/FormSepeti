@@ -4,6 +4,16 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using FormSepeti.Services.Interfaces;
 
+
+/*
+ // OnGetAsync metodunda 4 farklı durum belirleniyor:
+
+1. ✅ "connected" → IsAlreadyConnected=true + token geçerli
+2. ⚠️ "expired" → Token var ama süresi dolmuş
+3. ℹ️ "needs_permissions" → Google ile login ama Sheets izni yok
+4. ⭕ "disconnected" → Hiç bağlantı yok
+
+ */
 namespace FormSepeti.Web.Pages.Sheets
 {
     public class ConnectModel : PageModel
@@ -62,8 +72,9 @@ namespace FormSepeti.Web.Pages.Sheets
                 if (IsAlreadyConnected)
                 {
                     ConnectionStatus = "connected";
-                    LastConnectionDate = user.GoogleTokenExpiry?.AddDays(-30);
-                    
+                    //LastConnectionDate = user.GoogleTokenExpiry?.AddDays(-30);
+                    LastConnectionDate = user.LastLoginDate ?? user.CreatedDate;
+
                     var sheets = await _googleSheetsService.GetUserSheetsAsync(userId);
                     ActiveSheetsCount = sheets?.Count ?? 0;
 

@@ -44,6 +44,7 @@ namespace FormSepeti.Web.Pages.Dashboard
         }
 
         public string UserName { get; private set; } = "";
+        public string UserFullName { get; set; }
         public bool IsGoogleConnected { get; private set; }
         public int TotalSubmissions { get; private set; }
         
@@ -96,6 +97,11 @@ namespace FormSepeti.Web.Pages.Dashboard
             
             // ✅ YENİ: Token kontrol ve yenileme
             IsGoogleConnected = await CheckAndRefreshTokenAsync(user);
+
+            // Form verilerini doldur
+            UserFullName = !string.IsNullOrWhiteSpace(user.FullName) 
+                ? user.FullName 
+                : user.Email;
 
             // Aktif paketleri getir
             var userPackages = await _userPackageRepository.GetActiveByUserIdAsync(userId);
