@@ -25,10 +25,14 @@ namespace FormSepeti.Web.Pages.Account
 
         public string? Email { get; private set; }
         public string? Phone { get; private set; }
-        public string? ProfilePhotoUrl { get; private set; } // ✅ EKLENDI
+        public string? ProfilePhotoUrl { get; private set; }
         public string CreatedDate { get; private set; } = "-";
         public string LastLoginDate { get; private set; } = "-";
-        public bool IsGoogleConnected { get; private set; }
+        
+        // ✅ İKİ FARKLI DURUM
+        public bool IsGoogleLogin { get; private set; }
+        public bool IsGoogleSheetsConnected { get; private set; }
+        
         public int TotalSubmissions { get; private set; }
         public int ActivePackages { get; private set; }
 
@@ -60,10 +64,13 @@ namespace FormSepeti.Web.Pages.Account
 
             Email = user.Email;
             Phone = user.PhoneNumber;
-            ProfilePhotoUrl = user.ProfilePhotoUrl; // ✅ EKLENDI
+            ProfilePhotoUrl = user.ProfilePhotoUrl;
             CreatedDate = user.CreatedDate.ToString("dd MMMM yyyy");
             LastLoginDate = user.LastLoginDate?.ToString("dd MMMM yyyy HH:mm") ?? "Hiç giriş yapılmadı";
-            IsGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
+            
+            // ✅ İKİ FARKLI DURUM
+            IsGoogleLogin = !string.IsNullOrEmpty(user.GoogleId); // Login provider
+            IsGoogleSheetsConnected = await _userService.IsGoogleSheetsConnectedAsync(user.GoogleId); // Sheets connection
 
             TotalSubmissions = await _submissionRepository.GetCountByUserIdAsync(id);
             var activePackages = await _packageRepository.GetActiveByUserIdAsync(id);
@@ -93,7 +100,7 @@ namespace FormSepeti.Web.Pages.Account
             if (updated)
             {
                 TempData["Success"] = "Telefon numaranız güncellendi!";
-                return RedirectToPage(); // ✅ Redirect ile TempData kullan
+                return RedirectToPage();
             }
             else
             {

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
 using System.Collections.Generic;
@@ -47,11 +47,11 @@ namespace FormSepeti.Web.Pages.Dashboard
         public List<GroupPackageInfo> ActivePackages { get; private set; } = new();
         public bool HasAnyPackage => ActivePackages?.Any() ?? false;
 
-        // ? Diðer eriþilebilir gruplar (ücretsiz formlar)
+        // ? DiÄŸer eriÅŸilebilir gruplar (Ã¼cretsiz formlar)
         public List<GroupPackageInfo> OtherAccessibleGroups { get; private set; } = new();
         public bool HasOtherGroups => OtherAccessibleGroups?.Any() ?? false;
 
-        // Ýstatistikler
+        // Ä°statistikler
         public int ActivePackageCount { get; private set; }
         public int ExpiringSoonCount { get; private set; }
         public string NextExpiryDate { get; private set; } = "Yok";
@@ -65,7 +65,7 @@ namespace FormSepeti.Web.Pages.Dashboard
             public DateTime? ExpiryDate { get; set; }
             public bool IsActive { get; set; }
             public string SpreadsheetUrl { get; set; }
-            public bool IsFreeAccess { get; set; } // ? Paket olmadan eriþim
+            public bool IsFreeAccess { get; set; } // ? Paket olmadan eriÅŸim
         }
 
         private int GetUserId()
@@ -88,22 +88,26 @@ namespace FormSepeti.Web.Pages.Dashboard
                 return RedirectToPage("/Account/Login");
             }
 
-            UserName = user.Email ?? user.PhoneNumber ?? "Kullanýcý";
-            IsGoogleConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken);
+            UserName = user.Email ?? user.PhoneNumber ?? "KullanÄ±cÄ±";
+            
+            // âœ… DÃœZELT: userId ile Ã§aÄŸÄ±r (email yerine)
+            IsGoogleConnected = await _userService.IsGoogleSheetsConnectedAsync(user.GoogleId);
 
-            // ? 1. Aktif paketleri getir
+            // âœ… 1. Aktif paketleri getir
             var userPackages = await _userPackageRepository.GetActiveByUserIdAsync(userId);
             ActivePackageCount = userPackages.Count;
 
             var activeGroupIds = new HashSet<int>();
 
-            foreach (var up in userPackages) // ? SADECE aktif paketler
+            foreach (var up in userPackages)
             {
+                activeGroupIds.Add(up.GroupId); // âœ… Grup ID'sini ekle
+                
                 var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, up.GroupId);
                 
                 if (sheet == null && IsGoogleConnected)
                 {
-                    // Sheet oluþtur
+                    // Sheet oluÅŸtur
                     await _googleSheetsService.CreateSpreadsheetForUserGroup(
                         userId, 
                         up.GroupId, 
@@ -124,7 +128,7 @@ namespace FormSepeti.Web.Pages.Dashboard
                 });
             }
 
-            // ? 2. Ücretsiz formu olan gruplarý getir
+            // âœ… 2. Ãœcretsiz formu olan gruplarÄ± getir
             var freeGroups = await _formGroupRepository.GetGroupsWithFreeFormsAsync();
 
             foreach (var group in freeGroups)
@@ -135,12 +139,12 @@ namespace FormSepeti.Web.Pages.Dashboard
 
                 var sheet = await _sheetsRepository.GetByUserAndGroupAsync(userId, group.GroupId);
 
-                // ? Eðer bu gruba daha önce form gönderildiyse spreadsheet olabilir
+                // ? EÄŸer bu gruba daha Ã¶nce form gÃ¶nderildiyse spreadsheet olabilir
                 OtherAccessibleGroups.Add(new GroupPackageInfo
                 {
                     GroupId = group.GroupId,
                     GroupName = group.GroupName,
-                    PackageName = "Ücretsiz Formlar",
+                    PackageName = "Ãœcretsiz Formlar",
                     PurchaseDate = null,
                     ExpiryDate = null,
                     IsActive = true,
@@ -149,7 +153,7 @@ namespace FormSepeti.Web.Pages.Dashboard
                 });
             }
 
-            // Ýstatistikler
+            // Ä°statistikler
             ExpiringSoonCount = userPackages.Count(p => 
                 p.ExpiryDate.HasValue && 
                 p.ExpiryDate.Value <= DateTime.UtcNow.AddDays(7) &&

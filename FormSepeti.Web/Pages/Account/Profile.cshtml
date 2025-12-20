@@ -29,14 +29,63 @@
                         </div>
                     }
                     
-                    <h4 class="text-white">@Model.Email</h4>
+                    <h4 class="text-white mb-3">@Model.Email</h4>
                     
-                    @if (Model.IsGoogleConnected)
+                    @* ✅ Login Provider Badge *@
+                    @if (Model.IsGoogleLogin)
+                    {
+                        <span class="badge bg-primary mb-2">
+                            <i class="fab fa-google me-1"></i>Google ile Giriş Yapıldı
+                        </span>
+                        <br />
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary mb-2">
+                            <i class="fas fa-envelope me-1"></i>E-Mail ile Kayıt Yapıldı
+                        </span>
+                        <br />
+                    }
+                    
+                    @* ✅ Sheets Connection Status *@
+                    @if (Model.IsGoogleSheetsConnected)
                     {
                         <span class="badge bg-success">
-                            <i class="fab fa-google me-1"></i>Google Bağlı
+                            <i class="fas fa-table me-1"></i>Sheets Bağlı
                         </span>
                     }
+                    else
+                    {
+                        <a class="badge bg-warning text-dark text-decoration-none" asp-page="/Sheets/Connect">
+                            <i class="fas fa-plug me-1"></i>Sheets'e Bağlan
+                        </a>
+                    }
+                </div>
+            </div>
+
+            @* ✅ İSTATİSTİKLER KARTI *@
+            <div class="card border-0 mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2 text-info"></i>
+                        İstatistikler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3 pb-3 border-bottom border-secondary">
+                        <div>
+                            <i class="fas fa-paper-plane text-primary me-2"></i>
+                            <span class="text-light-muted">Toplam Gönderim</span>
+                        </div>
+                        <strong class="text-white">@Model.TotalSubmissions</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <i class="fas fa-box text-success me-2"></i>
+                            <span class="text-light-muted">Aktif Paket</span>
+                        </div>
+                        <strong class="text-white">@Model.ActivePackages</strong>
+                    </div>
                 </div>
             </div>
         </div>
@@ -45,12 +94,12 @@
         <div class="col-lg-8">
             <div class="row g-4 fade-in-up">
                 <!-- Success/Error Messages -->
-                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                @if (TempData["Success"] != null)
                 {
                     <div class="col-12">
                         <div class="alert alert-success alert-dismissible fade show">
                             <i class="fas fa-check-circle me-2"></i>
-                            @Model.SuccessMessage
+                            @TempData["Success"]
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     </div>
@@ -145,11 +194,27 @@
                         </div>
                         <div class="card-body">
                             <p class="text-light-muted mb-3">
-                                Şifrenizi değiştirmek için aşağıdaki butona tıklayın.
+                                @if (Model.IsGoogleLogin)
+                                {
+                                    <text>Google hesabınızın şifresini Google'da yönetebilirsiniz.</text>
+                                }
+                                else
+                                {
+                                    <text>Şifrenizi değiştirmek için aşağıdaki butona tıklayın.</text>
+                                }
                             </p>
-                            <a class="btn btn-warning" asp-page="/Account/ChangePassword">
-                                <i class="fas fa-key me-2"></i>Şifre Değiştir
-                            </a>
+                            @if (!Model.IsGoogleLogin)
+                            {
+                                <a class="btn btn-warning" asp-page="/Account/ChangePassword">
+                                    <i class="fas fa-key me-2"></i>Şifre Değiştir
+                                </a>
+                            }
+                            else
+                            {
+                                <a class="btn btn-outline-secondary" href="https://myaccount.google.com/security" target="_blank">
+                                    <i class="fab fa-google me-2"></i>Google Hesabını Yönet
+                                </a>
+                            }
                         </div>
                     </div>
                 </div>

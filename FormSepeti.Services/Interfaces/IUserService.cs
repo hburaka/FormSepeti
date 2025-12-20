@@ -18,5 +18,6 @@ namespace FormSepeti.Services.Interfaces
         Task<bool> UpdateUserAsync(User user);
         Task<User> GetOrCreateGoogleUserAsync(string googleId, string email, string name, string accessToken, string refreshToken, string? photoUrl = null);
         Task<User> GetUserByGoogleIdAsync(string googleId);
+        Task<bool> IsGoogleSheetsConnectedAsync(string googleId);
     }
 }

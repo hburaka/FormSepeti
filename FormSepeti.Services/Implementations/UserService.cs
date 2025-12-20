@@ -555,6 +555,60 @@ namespace FormSepeti.Services.Implementations
             return await _userRepository.GetByGoogleIdAsync(googleId);
         }
 
+        public async Task<bool> IsGoogleSheetsConnectedAsync(int userId)
+        {
+            try
+            {
+                var user = await _userRepository.GetByIdAsync(userId);
+                
+                if (user == null)
+                    return false;
+                
+                // ✅ Hem token'lar var mı hem de süresi dolmamış mı?
+                bool hasTokens = !string.IsNullOrEmpty(user.GoogleRefreshToken) &&
+                                 !string.IsNullOrEmpty(user.GoogleAccessToken);
+                
+                if (!hasTokens)
+                    return false;
+                
+                // ✅ Token süresi kontrolü
+                if (user.GoogleTokenExpiry.HasValue && user.GoogleTokenExpiry.Value <= DateTime.UtcNow)
+                {
+                    _logger.LogInformation($"Google token expired for UserId={userId}");
+                    return false;
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error checking Google Sheets connection for UserId={userId}");
+                return false;
+            }
+        }
+
+        // ✅ Add this method to your UserService class to implement the missing interface member
+        public async Task<bool> IsGoogleSheetsConnectedAsync(string googleId)
+        {
+            if (string.IsNullOrWhiteSpace(googleId))
+                return false;
+
+            var user = await _userRepository.GetByGoogleIdAsync(googleId);
+            if (user == null)
+                return false;
+
+            bool hasTokens = !string.IsNullOrEmpty(user.GoogleRefreshToken) &&
+                             !string.IsNullOrEmpty(user.GoogleAccessToken);
+
+            if (!hasTokens)
+                return false;
+
+            if (user.GoogleTokenExpiry.HasValue && user.GoogleTokenExpiry.Value <= DateTime.UtcNow)
+                return false;
+
+            return true;
+        }
+
         // ✅ Class'ın sonuna helper method ekle
         private string MaskEmail(string email)
         {

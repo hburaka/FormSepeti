@@ -56,30 +56,18 @@ namespace FormSepeti.Web.Pages.Sheets
                 UserEmail = user.Email;
                 IsGoogleLogin = User.FindFirst("LoginProvider")?.Value == "Google";
 
-                // ✅ Detaylı bağlantı kontrolü
-                IsAlreadyConnected = !string.IsNullOrEmpty(user.GoogleRefreshToken) &&
-                                      !string.IsNullOrEmpty(user.GoogleAccessToken);
+                // ✅ DÜZELT: Ortak metodu kullan
+                IsAlreadyConnected = await _userService.IsGoogleSheetsConnectedAsync(user.GoogleId);
 
                 if (IsAlreadyConnected)
                 {
                     ConnectionStatus = "connected";
-                    LastConnectionDate = user.GoogleTokenExpiry?.AddDays(-30); // Token'dan tahmin
+                    LastConnectionDate = user.GoogleTokenExpiry?.AddDays(-30);
                     
-                    // ✅ Aktif sheet sayısını al
                     var sheets = await _googleSheetsService.GetUserSheetsAsync(userId);
                     ActiveSheetsCount = sheets?.Count ?? 0;
 
-                    // ✅ Token süresi kontrolü
-                    if (user.GoogleTokenExpiry.HasValue && user.GoogleTokenExpiry.Value <= DateTime.UtcNow)
-                    {
-                        TempData["Warning"] = "Google Sheets token'ınızın süresi dolmuş. Lütfen yeniden bağlanın.";
-                        ConnectionStatus = "expired";
-                        IsAlreadyConnected = false;
-                    }
-                    else
-                    {
-                        TempData["Success"] = "Google Sheets bağlantınız aktif!";
-                    }
+                    TempData["Success"] = "Google Sheets bağlantınız aktif!";
                 }
                 else if (IsGoogleLogin)
                 {
@@ -88,8 +76,21 @@ namespace FormSepeti.Web.Pages.Sheets
                 }
                 else
                 {
-                    ConnectionStatus = "disconnected";
-                    TempData["Info"] = "Google Sheets'e bağlanarak formlarınızı otomatik kaydedin.";
+                    // ✅ Token var ama süresi dolmuş mu kontrol et
+                    bool hasExpiredToken = !string.IsNullOrEmpty(user.GoogleRefreshToken) &&
+                                    user.GoogleTokenExpiry.HasValue &&
+                                    user.GoogleTokenExpiry.Value <= DateTime.UtcNow;
+            
+                    if (hasExpiredToken)
+                    {
+                        ConnectionStatus = "expired";
+                        TempData["Warning"] = "Google Sheets token'ınızın süresi dolmuş. Lütfen yeniden bağlanın.";
+                    }
+                    else
+                    {
+                        ConnectionStatus = "disconnected";
+                        TempData["Info"] = "Google Sheets'e bağlanarak formlarınızı otomatik kaydedin.";
+                    }
                 }
 
                 _logger.LogInformation($"Sheets/Connect page loaded: UserId={userId}, Status={ConnectionStatus}");
@@ -108,19 +109,30 @@ namespace FormSepeti.Web.Pages.Sheets
             var userId = GetCurrentUserId();
             if (userId == 0)
             {
-                ErrorMessage = "Kullanıcı giriş yapmamış.";
+                TempData["Error"] = "Lütfen giriş yapın.";
                 _logger.LogWarning("Unauthenticated OAuth attempt");
-                return Page();
+                return RedirectToPage("/Account/Login");
             }
 
             try
             {
                 var user = await _userService.GetUserByIdAsync(userId);
+                
+                // ✅ Token süresi dolmuşsa da yeniden bağlan
                 if (user != null && !string.IsNullOrEmpty(user.GoogleRefreshToken))
                 {
-                    TempData["Warning"] = "Google Sheets bağlantınız zaten aktif!";
-                    _logger.LogInformation($"User already connected: UserId={userId}");
-                    return RedirectToPage();
+                    var tokenExpired = user.GoogleTokenExpiry.HasValue && 
+                                       user.GoogleTokenExpiry.Value <= DateTime.UtcNow;
+                    
+                    if (!tokenExpired)
+                    {
+                        TempData["Info"] = "Google Sheets bağlantınız zaten aktif!";
+                        _logger.LogInformation($"User already connected (valid token): UserId={userId}");
+                        return RedirectToPage();
+                    }
+                    
+                    // ✅ Token dolmuş, yeniden bağlan
+                    _logger.LogInformation($"Token expired, initiating re-auth: UserId={userId}");
                 }
 
                 _logger.LogInformation($"Initiating Google OAuth for UserId={userId}");
@@ -128,7 +140,7 @@ namespace FormSepeti.Web.Pages.Sheets
                 var authUrl = await _googleSheetsService.GetAuthorizationUrl(userId);
                 if (string.IsNullOrEmpty(authUrl))
                 {
-                    ErrorMessage = "Yetkilendirme URL'si oluşturulamadı. Lütfen tekrar deneyin.";
+                    TempData["Error"] = "Yetkilendirme URL'si oluşturulamadı. Lütfen tekrar deneyin.";
                     _logger.LogError($"Failed to generate OAuth URL for UserId={userId}");
                     return Page();
                 }
@@ -139,7 +151,7 @@ namespace FormSepeti.Web.Pages.Sheets
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error during OAuth initiation for UserId={userId}");
-                ErrorMessage = "Bağlantı başlatılırken bir hata oluştu. Lütfen tekrar deneyin.";
+                TempData["Error"] = "Bağlantı başlatılırken bir hata oluştu. Lütfen tekrar deneyin.";
                 return Page();
             }
         }

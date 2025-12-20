@@ -449,17 +449,36 @@ namespace FormSepeti.Services.Implementations
         {
             try
             {
+                _logger.LogInformation($"TestConnectionAsync: Testing for UserId={userId}");
+                
                 var service = await GetSheetsService(userId);
-                if (service == null) return false;
+                if (service == null)
+                {
+                    _logger.LogError($"TestConnectionAsync: SheetsService is null");
+                    return false;
+                }
                 
-                // Basit bir test isteği at
-                var request = service.Spreadsheets.Get("test");
-                await request.ExecuteAsync();
+                // ✅ Kullanıcının sheet'lerini getirmeyi dene
+                var sheets = await _sheetsRepository.GetByUserIdAsync(userId);
                 
+                if (sheets == null || !sheets.Any())
+                {
+                    // Sheet yok ama servis çalışıyor - OK
+                    _logger.LogInformation($"TestConnectionAsync: No sheets found but service OK");
+                    return true;
+                }
+                
+                // ✅ İlk sheet'i test et
+                var testSheet = sheets.First();
+                var request = service.Spreadsheets.Get(testSheet.SpreadsheetId);
+                var spreadsheet = await request.ExecuteAsync();
+                
+                _logger.LogInformation($"TestConnectionAsync: Success - {spreadsheet.Properties.Title}");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, $"TestConnectionAsync failed for UserId={userId}");
                 return false;
             }
         }
