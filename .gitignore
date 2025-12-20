@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/FormSepeti.Web/wwwroot/css
+/FormSepeti.Data/Entities/PasswordResetToken.cs
+/FormSepeti.Data/Repositories/Interfaces/IPasswordResetRepository.cs
