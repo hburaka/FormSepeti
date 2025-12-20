@@ -3,15 +3,22 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using FormSepeti.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace FormSepeti.Services.Implementations
 {
     public class LoginAttemptService : ILoginAttemptService
     {
         private readonly ConcurrentDictionary<string, LoginAttemptRecord> _attempts = new();
-        private readonly int _maxAttempts = 5;
-        private readonly int _lockoutMinutes = 15;
+        private readonly int _maxAttempts;
+        private readonly int _lockoutMinutes;
 
+        public LoginAttemptService(IConfiguration configuration)
+        {
+            _maxAttempts = int.TryParse(configuration["Security:LoginAttempts:MaxAttempts"], out var max) ? max : 5;
+            _lockoutMinutes = int.TryParse(configuration["Security:LoginAttempts:LockoutMinutes"], out var lockout) ? lockout : 5;
+        }
+        
         public bool IsLockedOut(string identifier)
         {
             if (_attempts.TryGetValue(identifier, out var record))

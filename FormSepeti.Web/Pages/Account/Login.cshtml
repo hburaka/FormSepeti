@@ -5,12 +5,12 @@
     ViewData["Title"] = "Giriş";
 }
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-5 col-lg-4">
         <div class="card">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">Giriş Yap</h3>
+            <div class="card-body p-4">
+                <h4 class="text-center mb-4">Giriş Yap</h4>
                 
-                @* ✅ YENİ - Kalan deneme hakkı uyarısı *@
+                @* Kalan deneme hakkı uyarısı *@
                 @if (Model.RemainingAttempts > 0 && Model.RemainingAttempts < 5)
                 {
                     <div class="alert alert-warning">
@@ -18,24 +18,38 @@
                         Kalan deneme hakkınız: <strong>@Model.RemainingAttempts</strong>
                     </div>
                 }
+                else if (Model.RemainingAttempts == 0)
+                {
+                    <div class="alert alert-danger">
+                        <i class="fas fa-ban me-2"></i>
+                        <strong>Hesabınız geçici olarak kilitlendi!</strong> Lütfen birkaç dakika sonra tekrar deneyin.
+                    </div>
+                }
                 
-                @* Google Login *@
-                <div class="text-center mb-4">
+                @* GOOGLE İLE GİRİŞ BUTONU *@
+                <div class="mb-4">
                     <a href="@Url.Action("GoogleLogin", "Account", new { returnUrl = ViewData["ReturnUrl"] })" 
-                       class="btn btn-danger btn-lg w-100">
-                        <i class="fab fa-google me-2"></i>
-                        Google ile Giriş Yap
+                       class="btn btn-danger w-100">
+                        <i class="fab fa-google me-2"></i>Google ile Giriş Yap
                     </a>
-                    <p class="text-muted mt-3 mb-0">
-                        <small>Google ile giriş yaparak hem hesap oluşturur hem de Google Sheets erişimi sağlarsınız.</small>
-                    </p>
+                    <div class="mt-2 p-2 rounded" style="background: rgba(99, 102, 241, 0.05);">
+                        <small style="color: var(--text-secondary) !important; font-size: 0.75rem; display: block;">
+                            <i class="fas fa-check-circle text-success me-1"></i>Tek tıkla giriş yap<br>
+                            <i class="fas fa-check-circle text-success me-1"></i>Şifre hatırlamana gerek yok<br>
+                            <i class="fas fa-check-circle text-success me-1"></i>Google Sheets otomatik bağlanır
+                        </small>
+                    </div>
                 </div>
                 
-                <hr class="my-4">
-                <p class="text-center text-muted">veya</p>
-                <hr class="my-4">
+                <div class="position-relative my-3">
+                    <hr class="my-0">
+                    <span class="position-absolute top-50 start-50 translate-middle px-2" 
+                          style="background: var(--card-bg, #fff); color: var(--text-muted) !important; font-size: 0.875rem;">
+                        veya
+                    </span>
+                </div>
                 
-                @* Normal Login Form *@
+                @* Normal giriş formu *@
                 <form method="post" novalidate>
                     <div asp-validation-summary="All" class="text-danger mb-2"></div>
                     @if (!string.IsNullOrEmpty(Model.Error))
@@ -46,29 +60,45 @@
                     }
 
                     <div class="mb-3">
-                        <label asp-for="EmailOrPhone" class="form-label">Email veya Telefon</label>
-                        <input asp-for="EmailOrPhone" class="form-control" />
-                        <span asp-validation-for="EmailOrPhone" class="text-danger"></span>
+                        <label asp-for="EmailOrPhone" class="form-label">
+                            <i class="fas fa-envelope me-1"></i>Email veya Telefon
+                        </label>
+                        <input asp-for="EmailOrPhone" class="form-control form-control-sm"
+                               placeholder="ornek@email.com veya 5XX XXX XX XX" />
+                        <span asp-validation-for="EmailOrPhone" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Password" class="form-label">Şifre</label>
-                        <input asp-for="Password" type="password" class="form-control" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                        <!-- ✅ YENİ -->
+                        <label asp-for="Password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>Şifre
+                        </label>
+                        <input asp-for="Password" type="password" class="form-control form-control-sm" placeholder="••••••••" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
                         <div class="text-end mt-1">
-                            <a asp-page="/Account/ForgotPassword" class="text-muted small">
+                            <a asp-page="/Account/ForgotPassword" style="color: var(--text-secondary) !important; font-size: 0.75rem; text-decoration: none;">
                                 <i class="fas fa-question-circle me-1"></i>Şifremi Unuttum
                             </a>
                         </div>
                     </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                    <div class="form-check mb-3">
+                        <input asp-for="RememberMe" class="form-check-input" style="margin-top: 0.15rem;" />
+                        <label asp-for="RememberMe" class="form-check-label small" style="color: var(--text-primary) !important;">
+                            Beni Hatırla
+                        </label>
                     </div>
 
-                    <div class="mt-3 text-center">
-                        <a asp-page="/Account/Register">Kayıt Ol</a>
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <small style="color: var(--text-secondary) !important;">Hesabınız yok mu?</small>
+                        <a asp-page="/Account/Register" style="color: var(--primary) !important; text-decoration: none; font-weight: 600; font-size: 0.875rem;">
+                            Kayıt Ol
+                        </a>
                     </div>
                 </form>
             </div>

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Linq;
 using FormSepeti.Services.Interfaces;
 using FormSepeti.Data.Repositories.Interfaces;
 
@@ -24,12 +25,11 @@ namespace FormSepeti.Web.Pages.Account
         }
 
         public string? Email { get; private set; }
-        public string? Phone { get; private set; }
+        public string? Phone { get; private set; } // ✅ Formatlı gösterim için
         public string? ProfilePhotoUrl { get; private set; }
         public string CreatedDate { get; private set; } = "-";
         public string LastLoginDate { get; private set; } = "-";
         
-        // ✅ İKİ FARKLI DURUM
         public bool IsGoogleLogin { get; private set; }
         public bool IsGoogleSheetsConnected { get; private set; }
         
@@ -69,7 +69,8 @@ namespace FormSepeti.Web.Pages.Account
             }
 
             Email = user.Email;
-            Phone = user.PhoneNumber;
+            // ✅ Telefonu formatlı göster
+            Phone = FormatPhoneForDisplay(user.PhoneNumber);
             FirstName = user.FirstName;
             LastName = user.LastName;
             ProfilePhotoUrl = user.ProfilePhotoUrl;
@@ -83,8 +84,6 @@ namespace FormSepeti.Web.Pages.Account
             var activePackages = await _packageRepository.GetActiveByUserIdAsync(id);
             ActivePackages = activePackages.Count;
 
-            // ✅ YENİ: Eğer logout mesajı varsa, sadece login sayfasında gösterilmeli
-            // Profile sayfasında gereksiz mesajları temizle
             if (TempData.ContainsKey("Success") && TempData["Success"]?.ToString() == "Başarıyla çıkış yaptınız.")
             {
                 TempData.Remove("Success");
@@ -108,7 +107,11 @@ namespace FormSepeti.Web.Pages.Account
                 return Page();
             }
 
-            user.PhoneNumber = NewPhone?.Trim();
+            // ✅ Telefonu temizle ve kaydet
+            user.PhoneNumber = string.IsNullOrWhiteSpace(NewPhone) 
+                ? null 
+                : CleanPhoneNumber(NewPhone);
+            
             var updated = await _userService.UpdateUserAsync(user);
 
             if (updated)
@@ -144,6 +147,43 @@ namespace FormSepeti.Web.Pages.Account
             
             TempData["Success"] = "Profil bilgileriniz güncellendi";
             return RedirectToPage();
+        }
+
+        // ✅ Helper metodlar
+        private string FormatPhoneForDisplay(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+                return null;
+            
+            var cleaned = new string(phone.Where(char.IsDigit).ToArray());
+            
+            if (cleaned.Length == 12 && cleaned.StartsWith("90"))
+                cleaned = cleaned.Substring(2);
+            else if (cleaned.Length == 11 && cleaned.StartsWith("0"))
+                cleaned = cleaned.Substring(1);
+            
+            if (cleaned.Length == 10)
+            {
+                return $"+90 ({cleaned.Substring(0, 3)}) {cleaned.Substring(3, 3)} {cleaned.Substring(6, 2)} {cleaned.Substring(8, 2)}";
+            }
+            
+            return phone;
+        }
+
+        private string CleanPhoneNumber(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+                return null;
+            
+            var cleaned = new string(phone.Where(char.IsDigit).ToArray());
+            
+            if (cleaned.StartsWith("0") && cleaned.Length == 11)
+                cleaned = cleaned.Substring(1);
+            
+            if (cleaned.StartsWith("90") && cleaned.Length == 12)
+                cleaned = cleaned.Substring(2);
+            
+            return cleaned.Length == 10 ? cleaned : phone;
         }
     }
 }

@@ -143,7 +143,7 @@ builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IFormService, FormService>();
 builder.Services.AddScoped<ILoginAttemptService, LoginAttemptService>(); // Buraya ekledim
 // ✅ YENİ - Rate Limiting Servisi (Singleton olmalı - uygulama boyunca tek instance)
-builder.Services.AddSingleton<LoginAttemptService>();
+builder.Services.AddSingleton<ILoginAttemptService, LoginAttemptService>();
 
 builder.Services.AddHttpClient<IJotFormService, JotFormService>(client =>
 {
@@ -250,5 +250,15 @@ if (app.Environment.IsDevelopment())
         }
     }
 }
+
+// ✅ YENİ: LoginAttemptService cleanup timer
+var loginAttemptService = app.Services.GetRequiredService<ILoginAttemptService>();
+var timer = new System.Threading.Timer(_ =>
+{
+    if (loginAttemptService is LoginAttemptService service)
+    {
+        service.CleanupExpiredAttempts();
+    }
+}, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
 
 app.Run();

@@ -42,29 +42,42 @@ namespace FormSepeti.Web.Pages.Account
         public string? Error { get; set; }
         public int RemainingAttempts { get; set; }
 
-        public void OnGet()
+        public async Task OnGetAsync()
         {
             if (LoggedOut)
             {
                 TempData["Success"] = "Başarıyla çıkış yaptınız.";
             }
+            
+            // ✅ YENİ: Sayfa yüklendiğinde kalan deneme hakkını göster
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            RemainingAttempts = _loginAttemptService.GetRemainingAttempts(ipAddress);
+            
+            _logger.LogInformation($"Login page loaded. IP: {ipAddress}, Remaining attempts: {RemainingAttempts}");
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/Dashboard/Index");
 
-            if (!ModelState.IsValid)
-            {
-                return Page();
-            }
-
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
+            
+            // ✅ ÖNCE IP kontrolü yap
             if (await _loginAttemptService.IsIpBlockedAsync(ipAddress))
             {
                 var blockTimeRemaining = _loginAttemptService.GetLockoutTimeRemaining(ipAddress);
+                RemainingAttempts = 0; // ✅ Kilitli olduğu için 0
                 Error = $"Çok fazla başarısız giriş denemesi yaptınız. Lütfen {blockTimeRemaining.Minutes} dakika {blockTimeRemaining.Seconds} saniye sonra tekrar deneyin.";
+                return Page();
+            }
+
+            // ✅ Sayfa yüklendiğinde kalan hakkı göster
+            RemainingAttempts = _loginAttemptService.GetRemainingAttempts(ipAddress);
+
+            // ✅ Model validation kontrolü
+            if (!ModelState.IsValid)
+            {
+                Error = "Lütfen tüm alanları doldurun.";
                 return Page();
             }
 
@@ -75,7 +88,16 @@ namespace FormSepeti.Web.Pages.Account
                 await _loginAttemptService.RecordFailedLoginAsync(EmailOrPhone, ipAddress);
                 RemainingAttempts = _loginAttemptService.GetRemainingAttempts(ipAddress);
                 
-                Error = "E-posta/telefon veya şifre hatalı.";
+                // ✅ Kalan hak mesajı ekle
+                if (RemainingAttempts > 0)
+                {
+                    Error = $"E-posta/telefon veya şifre hatalı. Kalan deneme hakkınız: {RemainingAttempts}";
+                }
+                else
+                {
+                    Error = "E-posta/telefon veya şifre hatalı.";
+                }
+                
                 return Page();
             }
 
@@ -89,7 +111,6 @@ namespace FormSepeti.Web.Pages.Account
                 new Claim("UserId", user.UserId.ToString())
             };
 
-            // ✅ YENİ: FirstName ve LastName claim'leri ekle
             if (!string.IsNullOrWhiteSpace(user.FirstName))
             {
                 claims.Add(new Claim("FirstName", user.FirstName));
@@ -100,7 +121,6 @@ namespace FormSepeti.Web.Pages.Account
                 claims.Add(new Claim("LastName", user.LastName));
             }
 
-            // ✅ Profile Photo URL
             if (!string.IsNullOrWhiteSpace(user.ProfilePhotoUrl))
             {
                 claims.Add(new Claim("ProfilePhotoUrl", user.ProfilePhotoUrl));

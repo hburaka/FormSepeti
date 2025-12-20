@@ -70,7 +70,7 @@ namespace FormSepeti.Services.Implementations
                 var user = new User
                 {
                     Email = email.ToLower().Trim(),
-                    PhoneNumber = phoneNumber?.Trim(),
+                    PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : CleanPhoneNumber(phoneNumber), // ✅ Temizle
                     PasswordHash = passwordHash,
                     IsActivated = false,
                     ActivationToken = activationToken,
@@ -106,39 +106,55 @@ namespace FormSepeti.Services.Implementations
             }
         }
 
-        public async Task<User> AuthenticateAsync(string email, string password)
+        public async Task<User> AuthenticateAsync(string emailOrPhone, string password)
         {
             try
             {
-                var user = await _userRepository.GetByEmailAsync(email.ToLower().Trim());
+                // ✅ Email mi telefon mu kontrol et
+                bool isEmail = emailOrPhone.Contains("@");
+                string searchValue = isEmail
+                    ? emailOrPhone.ToLower().Trim()
+                    : CleanPhoneNumber(emailOrPhone); // ✅ Telefonu temizle
+
+                _logger.LogInformation($"🔍 Authentication attempt - IsEmail: {isEmail}, SearchValue: {(isEmail ? MaskEmail(searchValue) : MaskPhoneNumber(searchValue))}");
+
+                var user = await _userRepository.GetByEmailOrPhoneAsync(searchValue);
 
                 if (user == null || !user.IsActive)
                 {
-                    _logger.LogWarning("Authentication failed - user not found or inactive: {MaskedEmail}", MaskEmail(email));
+                    _logger.LogWarning("Authentication failed - user not found or inactive: {Input}",
+                        isEmail ? MaskEmail(searchValue) : MaskPhoneNumber(searchValue));
+                    return null;
+                }
+
+                // ✅ Google kullanıcıları için şifre kontrolü yapma
+                if (!string.IsNullOrEmpty(user.GoogleId) && string.IsNullOrEmpty(user.PasswordHash))
+                {
+                    _logger.LogWarning("Authentication failed - Google user cannot login with password: {Email}", MaskEmail(user.Email));
                     return null;
                 }
 
                 if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 {
-                    _logger.LogWarning("Authentication failed - invalid password: {MaskedEmail}", MaskEmail(email));
+                    _logger.LogWarning("Authentication failed - invalid password: {Email}", MaskEmail(user.Email));
                     return null;
                 }
 
                 if (!user.IsActivated)
                 {
-                    _logger.LogWarning("Authentication failed - account not activated: {MaskedEmail}", MaskEmail(email));
+                    _logger.LogWarning("Authentication failed - account not activated: {Email}", MaskEmail(user.Email));
                     return null;
                 }
 
                 user.LastLoginDate = DateTime.UtcNow;
                 await _userRepository.UpdateAsync(user);
 
-                _logger.LogInformation("User authenticated successfully: {MaskedEmail}", MaskEmail(email));
+                _logger.LogInformation("User authenticated successfully: {Email}", MaskEmail(user.Email));
                 return user;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error authenticating user: {MaskedEmail}", MaskEmail(email));
+                _logger.LogError(ex, "Error authenticating user: {Input}", emailOrPhone);
                 return null;
             }
         }
@@ -681,6 +697,60 @@ namespace FormSepeti.Services.Implementations
             var extension = domainParts.Length > 1 ? "." + domainParts[^1] : "";
             
             return $"{username}@{domain}{extension}";
+        }
+
+        // ✅ Telefon formatı: Database'den kullanıcıya gösterirken
+        public string FormatPhoneForDisplay(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+                return null;
+            
+            // Sadece rakamları al
+            var cleaned = new string(phone.Where(char.IsDigit).ToArray());
+            
+            // 905321234567 veya 5321234567 -> +90 (532) 123 45 67
+            if (cleaned.Length == 12 && cleaned.StartsWith("90"))
+                cleaned = cleaned.Substring(2); // 90'ı kaldır
+            else if (cleaned.Length == 11 && cleaned.StartsWith("0"))
+                cleaned = cleaned.Substring(1); // 0'ı kaldır
+            
+            // 5321234567 formatında olmalı
+            if (cleaned.Length == 10)
+            {
+                return $"+90 ({cleaned.Substring(0, 3)}) {cleaned.Substring(3, 3)} {cleaned.Substring(6, 2)} {cleaned.Substring(8, 2)}";
+            }
+            
+            return phone; // Format uymazsa olduğu gibi döndür
+        }
+
+        private string CleanPhoneNumber(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+                return null;
+
+            // Sadece rakamları al
+            var cleaned = new string(phone.Where(char.IsDigit).ToArray());
+
+            // Başında 0 varsa kaldır (0532 -> 532)
+            if (cleaned.StartsWith("0") && cleaned.Length == 11)
+                cleaned = cleaned.Substring(1);
+
+            // Başında 90 varsa kaldır (90532 -> 532)
+            if (cleaned.StartsWith("90") && cleaned.Length == 12)
+                cleaned = cleaned.Substring(2);
+
+            // ✅ ÖNEMLİ: Ülke kodu EKLEME, database formatıyla aynı kal
+            // Sonuç: 5321234567 (10 haneli, başında sıfır ve 90 yok)
+
+            return cleaned.Length == 10 ? cleaned : phone;
+        }
+
+        private string MaskPhoneNumber(string phone)
+        {
+            if (string.IsNullOrEmpty(phone) || phone.Length < 4)
+                return "***";
+            
+            return phone.Substring(0, 2) + "***" + phone.Substring(phone.Length - 2);
         }
     }
 }

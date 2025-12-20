@@ -77,5 +77,23 @@ namespace FormSepeti.Data.Repositories.Implementations
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.TaxNumber == taxNumber && u.IsActive);
         }
+
+       
+        public async Task<User> GetByPhoneNumberAsync(string phoneNumber)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(phoneNumber))
+                    return null;
+
+                return await _context.Users
+                    .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, $"Error getting user by phone number: {phoneNumber}");
+                return null;
+            }
+        }
     }
 }

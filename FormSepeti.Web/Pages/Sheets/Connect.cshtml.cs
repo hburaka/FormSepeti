@@ -26,9 +26,9 @@ namespace FormSepeti.Web.Pages.Sheets
         public bool IsAlreadyConnected { get; private set; }
         public bool IsGoogleLogin { get; private set; }
         public string? UserEmail { get; private set; }
-        public DateTime? LastConnectionDate { get; private set; } // ✅ YENİ
-        public int ActiveSheetsCount { get; private set; } // ✅ YENİ
-        public string ConnectionStatus { get; private set; } = "disconnected"; // ✅ YENİ
+        public DateTime? LastConnectionDate { get; private set; } 
+        public int ActiveSheetsCount { get; private set; } 
+        public string ConnectionStatus { get; private set; } = "disconnected"; 
 
         public ConnectModel(
             IGoogleSheetsService googleSheetsService,

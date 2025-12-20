@@ -7,6 +7,7 @@ namespace FormSepeti.Data.Repositories.Interfaces
     {
         Task<User?> GetByIdAsync(int userId);
         Task<User?> GetByEmailAsync(string email);
+        Task<User> GetByPhoneNumberAsync(string phoneNumber); 
         Task<User?> GetByActivationTokenAsync(string token);
         Task<User> CreateAsync(User user);
         Task<bool> UpdateAsync(User user);
@@ -17,5 +18,6 @@ namespace FormSepeti.Data.Repositories.Interfaces
         // ✅ Fatura bilgileri için
         Task<User?> GetByTCKimlikNoAsync(string tcKimlikNo);
         Task<User?> GetByTaxNumberAsync(string taxNumber);
+
     }
 }
