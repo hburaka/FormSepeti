@@ -1,0 +1,231 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Packages.CreateModel
+@{
+    ViewData["Title"] = "Yeni Paket Ekle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Packages/Index">Paketler</a>
+            </li>
+            <li class="breadcrumb-item active">Yeni Paket</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-plus text-primary me-2"></i>
+        Yeni Paket Ekle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-box me-2"></i>
+                    Paket Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.GroupId" class="form-label">
+                            <i class="fas fa-layer-group me-1"></i>Form Grubu <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="Input.GroupId"
+                                class="form-select"
+                                asp-items="Model.Groups">
+                            <option value="">-- Grup Seçin --</option>
+                        </select>
+                        <span asp-validation-for="Input.GroupId" class="text-danger small"></span>
+                        <small class="form-text text-muted">Bu paket hangi grup için geçerli olacak?</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.PackageName" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Paket Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.PackageName"
+                               class="form-control"
+                               placeholder="Örn: Temel Paket" />
+                        <span asp-validation-for="Input.PackageName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>Paket Açıklaması
+                        </label>
+                        <textarea asp-for="Input.Description"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Paketin içeriği ve özellikleri..."></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-dollar-sign me-1"></i>Fiyatlandırma
+                    </h6>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.Price" class="form-label">
+                                Fiyat (TL) <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Input.Price"
+                                   class="form-control"
+                                   type="number"
+                                   step="0.01"
+                                   min="0.01"
+                                   placeholder="0.00" />
+                            <span asp-validation-for="Input.Price" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.DurationDays" class="form-label">
+                                Süre (Gün)
+                            </label>
+                            <input asp-for="Input.DurationDays"
+                                   class="form-control"
+                                   type="number"
+                                   min="0"
+                                   placeholder="0 = Süresiz" />
+                            <span asp-validation-for="Input.DurationDays" class="text-danger small"></span>
+                            <small class="form-text text-muted">0 girerseniz paket süresiz olur</small>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   id="isActiveSwitch"
+                                   checked />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Paket Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa paket kullanıcılara görünmez
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Packages/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Paketi Oluştur
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Yardım
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">Paket Oluşturma</h6>
+                <ul class="mb-0 ps-3 small">
+                    <li class="mb-2">
+                        <strong>Grup:</strong> Paket hangi form grubuna ait?
+                    </li>
+                    <li class="mb-2">
+                        <strong>Fiyat:</strong> TL cinsinden paket ücreti
+                    </li>
+                    <li class="mb-2">
+                        <strong>Süre:</strong> 0 = Süresiz, 30 = 1 Ay, 365 = 1 Yıl
+                    </li>
+                    <li class="mb-0">
+                        <strong>Aktif:</strong> Paket satışa açık mı?
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Example Card -->
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Örnek
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Aylık Paket:</strong></p>
+                <ul class="small mb-3">
+                    <li>Fiyat: 99.00 TL</li>
+                    <li>Süre: 30 gün</li>
+                </ul>
+
+                <p class="mb-2"><strong>Yıllık Paket:</strong></p>
+                <ul class="small mb-0">
+                    <li>Fiyat: 999.00 TL</li>
+                    <li>Süre: 365 gün</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Price validation
+        const priceInput = document.querySelector('input[name="Input.Price"]');
+        if (priceInput) {
+            priceInput.addEventListener('blur', function() {
+                if (this.value && parseFloat(this.value) <= 0) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        }
+
+        // Duration suggestions
+        const durationInput = document.querySelector('input[name="Input.DurationDays"]');
+        if (durationInput) {
+            const suggestionsDiv = document.createElement('div');
+            suggestionsDiv.className = 'mt-2';
+            suggestionsDiv.innerHTML = `
+                <small class="text-muted">
+                    <strong>Öneriler:</strong>
+                    <a href="#" class="badge bg-secondary ms-1" data-days="30">1 Ay</a>
+                    <a href="#" class="badge bg-secondary ms-1" data-days="90">3 Ay</a>
+                    <a href="#" class="badge bg-secondary ms-1" data-days="180">6 Ay</a>
+                    <a href="#" class="badge bg-secondary ms-1" data-days="365">1 Yıl</a>
+                    <a href="#" class="badge bg-success ms-1" data-days="0">Süresiz</a>
+                </small>
+            `;
+            durationInput.parentNode.appendChild(suggestionsDiv);
+
+            suggestionsDiv.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    durationInput.value = this.getAttribute('data-days');
+                });
+            });
+        }
+    </script>
+}

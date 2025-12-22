@@ -1,0 +1,343 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Logs.IndexModel
+@{
+    ViewData["Title"] = "Audit Logları";
+}
+
+<style>
+/* Small-screen stacked rows */
+@media (max-width: 575.98px) {
+    .responsive-table thead { display: none; }
+    .responsive-table, .responsive-table tbody, .responsive-table tr { display: block; width: 100%; }
+    .responsive-table tr {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+    }
+    .responsive-table td {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-top: 0;
+    }
+    .responsive-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #6c757d;
+        margin-right: 8px;
+        flex: 0 0 auto;
+    }
+    .responsive-table td > * { flex: 1 1 auto; text-align: right; }
+    .responsive-table td .text-muted { text-align: right; }
+}
+</style>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-history text-primary me-2"></i>
+            Audit Logları
+        </h2>
+        <p class="text-muted mb-0">Sistem aktivitelerini görüntüleyin</p>
+    </div>
+    <div>
+        <div class="btn-group">
+            <a asp-page-handler="ExportExcel" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <a asp-page-handler="ExportCsv" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-file-csv me-1"></i>CSV
+            </a>
+            <button class="btn btn-outline-secondary" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-2"></i>Yenile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-primary bg-opacity-10 text-primary rounded">
+                            <i class="fas fa-list fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Toplam Log</h6>
+                        <h3 class="mb-0">@Model.TotalLogs</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-success bg-opacity-10 text-success rounded">
+                            <i class="fas fa-calendar-day fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Bugün</h6>
+                        <h3 class="mb-0">@Model.TodayLogs</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-info bg-opacity-10 text-info rounded">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Kullanıcı</h6>
+                        <h3 class="mb-0">@Model.UserActions</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-warning bg-opacity-10 text-warning rounded">
+                            <i class="fas fa-shield-alt fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Admin</h6>
+                        <h3 class="mb-0">@Model.AdminActions</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <!-- small-screen toggle -->
+        <div class="d-md-none mb-3">
+            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+                <i class="fas fa-filter me-1"></i> Filtreler
+            </button>
+        </div>
+
+        <div class="collapse d-md-block" id="filtersCollapse">
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="fas fa-search me-1"></i>Arama
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               name="searchTerm"
+                               value="@Model.SearchTerm"
+                               placeholder="Action, entity veya detay ile ara...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            <i class="fas fa-filter me-1"></i>Action
+                        </label>
+                        <select class="form-select" name="actionFilter">
+                            <option value="">Tümü</option>
+                            <option value="Login" selected="@(Model.ActionFilter == "Login")">Login</option>
+                            <option value="Create" selected="@(Model.ActionFilter == "Create")">Create</option>
+                            <option value="Update" selected="@(Model.ActionFilter == "Update")">Update</option>
+                            <option value="Delete" selected="@(Model.ActionFilter == "Delete")">Delete</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            <i class="fas fa-calendar me-1"></i>Tarih
+                        </label>
+                        <select class="form-select" name="dateFilter">
+                            <option value="all" selected="@(Model.DateFilter == "all" || string.IsNullOrEmpty(Model.DateFilter))">Tümü</option>
+                            <option value="today" selected="@(Model.DateFilter == "today")">Bugün</option>
+                            <option value="week" selected="@(Model.DateFilter == "week")">Son 7 Gün</option>
+                            <option value="month" selected="@(Model.DateFilter == "month")">Son 30 Gün</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i>Ara
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Logs Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Log Listesi (@Model.Logs.Count kayıt - Sayfa @Model.PageNumber/@Model.TotalPages)
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Logs.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 table-sm responsive-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Tarih/Saat</th>
+                            <th>Kullanıcı</th>
+                            <th>Action</th>
+                            <th>Entity</th>
+                            <th>Detaylar</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs)
+                        {
+                            <tr>
+                                <td class="ps-3" data-label="Tarih/Saat">
+                                    <small>
+                                        <strong>@log.CreatedDate.ToString("dd.MM.yyyy")</strong><br />
+                                        <span class="text-muted">@log.CreatedDate.ToString("HH:mm:ss")</span>
+                                    </small>
+                                </td>
+                                <td data-label="Kullanıcı">
+                                    <div class="d-flex align-items-center justify-content-end justify-content-md-start">
+                                        @if (log.IsAdmin)
+                                        {
+                                            <span class="badge bg-danger me-2">Admin</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary me-2">User</span>
+                                        }
+                                        <small class="text-end text-md-start">@log.UserName</small>
+                                    </div>
+                                </td>
+                                <td data-label="Action">
+                                    @{
+                                        var actionClass = log.Action.Contains("Create") ? "success" :
+                                        log.Action.Contains("Update") ? "warning" :
+                                        log.Action.Contains("Delete") ? "danger" :
+                                        log.Action.Contains("Login") ? "info" : "secondary";
+                                    }
+                                    <span class="badge bg-@actionClass">@log.Action</span>
+                                </td>
+                                <td data-label="Entity">
+                                    <small>
+                                        <strong>@log.EntityType</strong>
+                                        @if (log.EntityId.HasValue)
+                                        {
+                                            <span class="text-muted">#@log.EntityId</span>
+                                        }
+                                    </small>
+                                </td>
+                                <td data-label="Detaylar">
+                                    <small class="text-muted" style="max-width: 300px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        @log.Details
+                                    </small>
+                                </td>
+                                <td data-label="IP">
+                                    <small class="text-muted font-monospace">@log.IpAddress</small>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer bg-white">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+                            <!-- Previous -->
+                            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                                <a class="page-link"
+                                   href="?pageNumber=@(Model.PageNumber - 1)&searchTerm=@Model.SearchTerm&actionFilter=@Model.ActionFilter&dateFilter=@Model.DateFilter">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            <!-- First Page -->
+                            @if (Model.PageNumber > 3)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?pageNumber=1&searchTerm=@Model.SearchTerm&actionFilter=@Model.ActionFilter&dateFilter=@Model.DateFilter">
+                                        1
+                                    </a>
+                                </li>
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+
+                            <!-- Page Numbers -->
+                            @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link"
+                                       href="?pageNumber=@i&searchTerm=@Model.SearchTerm&actionFilter=@Model.ActionFilter&dateFilter=@Model.DateFilter">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Last Page -->
+                            @if (Model.PageNumber < Model.TotalPages - 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="?pageNumber=@Model.TotalPages&searchTerm=@Model.SearchTerm&actionFilter=@Model.ActionFilter&dateFilter=@Model.DateFilter">
+                                        @Model.TotalPages
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Next -->
+                            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link"
+                                   href="?pageNumber=@(Model.PageNumber + 1)&searchTerm=@Model.SearchTerm&actionFilter=@Model.ActionFilter&dateFilter=@Model.DateFilter">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Log kaydı bulunamadı</p>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.ActionFilter) || !string.IsNullOrEmpty(Model.DateFilter))
+                {
+                    <a asp-page="/Logs/Index" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-times me-1"></i>Filtreleri Temizle
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>

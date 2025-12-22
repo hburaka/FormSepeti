@@ -364,3 +364,7 @@ FodyWeavers.xsd
 /FormSepeti.Web/wwwroot/css
 /FormSepeti.Data/Entities/PasswordResetToken.cs
 /FormSepeti.Data/Repositories/Interfaces/IPasswordResetRepository.cs
+/Areas/Admin/Pages
+/FormSepeti.Web/wwwroot
+/Pages/Admin
+/Program.cs

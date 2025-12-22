@@ -1,0 +1,283 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Packages.IndexModel
+@{
+    ViewData["Title"] = "Paket Yönetimi";
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-box text-primary me-2"></i>
+            Paket Yönetimi
+        </h2>
+        <p class="text-muted mb-0">Sistemdeki tüm paketleri görüntüleyin ve yönetin</p>
+    </div>
+    <div>
+        <a class="btn btn-primary" asp-page="/Packages/Create">
+            <i class="fas fa-plus me-2"></i>Yeni Paket
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-primary bg-opacity-10 text-primary rounded">
+                            <i class="fas fa-box fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Toplam Paket</h6>
+                        <h3 class="mb-0">@Model.TotalPackages</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-success bg-opacity-10 text-success rounded">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Aktif Paket</h6>
+                        <h3 class="mb-0">@Model.ActivePackages</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-warning bg-opacity-10 text-warning rounded">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Pasif Paket</h6>
+                        <h3 class="mb-0">@Model.InactivePackages</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-info bg-opacity-10 text-info rounded">
+                            <i class="fas fa-lira-sign fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Toplam Gelir</h6>
+                        <h3 class="mb-0">@Model.TotalRevenue.ToString("0.##") ₺</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">
+                        <i class="fas fa-search me-1"></i>Arama
+                    </label>
+                    <input type="text"
+                           class="form-control"
+                           name="searchTerm"
+                           value="@Model.SearchTerm"
+                           placeholder="Paket adı veya açıklama ile ara...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">
+                        <i class="fas fa-filter me-1"></i>Durum
+                    </label>
+                    <select class="form-select" name="statusFilter">
+                        <option value="all" selected="@(Model.StatusFilter == "all" || string.IsNullOrEmpty(Model.StatusFilter))">Tümü</option>
+                        <option value="active" selected="@(Model.StatusFilter == "active")">Aktif</option>
+                        <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Pasif</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>Ara
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Packages Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Paket Listesi (@Model.Packages.Count)
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Packages.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Paket Adı</th>
+                            <th>Grup</th>
+                            <th>Fiyat</th>
+                            <th>Süre</th>
+                            <th>Satış</th>
+                            <th>Durum</th>
+                            <th>Oluşturma</th>
+                            <th class="text-end pe-4">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var package in Model.Packages)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="badge bg-secondary">#@package.PackageId</span>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>@package.PackageName</strong>
+                                        <br />
+                                        <small class="text-muted">@package.Description</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">@package.GroupName</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">@package.Price.ToString("0.##") ₺</strong>
+                                </td>
+                                <td>
+                                    @if (package.DurationDays.HasValue)
+                                    {
+                                        <span>@package.DurationDays gün</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Süresiz</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (package.PurchaseCount > 0)
+                                    {
+                                        <span class="badge bg-primary">
+                                            @package.PurchaseCount satış
+                                        </span>
+                                        <br />
+                                        <small class="text-success">@package.ActivePurchaseCount aktif</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Satış yok</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (package.IsActive)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Aktif
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i>Pasif
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        @package.CreatedDate.ToString("dd.MM.yyyy")
+                                    </small>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group" role="group">
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           asp-page="/Packages/Edit"
+                                           asp-route-id="@package.PackageId"
+                                           data-bs-toggle="tooltip"
+                                           title="Düzenle">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post"
+                                              asp-page-handler="ToggleStatus"
+                                              asp-route-packageId="@package.PackageId"
+                                              class="d-inline">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="tooltip"
+                                                    title="@(package.IsActive ? "Pasifleştir" : "Aktifleştir")">
+                                                <i class="fas fa-@(package.IsActive ? "ban" : "check")"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post"
+                                              asp-page-handler="Delete"
+                                              asp-route-packageId="@package.PackageId"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Bu paketi silmek istediğinize emin misiniz?');">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Sil"
+                                                    @(package.PurchaseCount > 0 ? "disabled" : "")>
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Paket bulunamadı</p>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.StatusFilter))
+                {
+                    <a asp-page="/Packages/Index" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-times me-1"></i>Filtreleri Temizle
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+}
