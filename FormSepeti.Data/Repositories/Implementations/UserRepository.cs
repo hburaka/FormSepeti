@@ -95,5 +95,12 @@ namespace FormSepeti.Data.Repositories.Implementations
                 return null;
             }
         }
+
+        public async Task<List<User>> GetAllAsync()
+        {
+            return await _context.Users
+                .OrderByDescending(u => u.CreatedDate)
+                .ToListAsync();
+        }
     }
 }

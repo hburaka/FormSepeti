@@ -1,0 +1,379 @@
+﻿@page "{id:int}"
+@model FormSepeti.Web.Areas.Admin.Pages.Users.DetailModel
+@{
+    ViewData["Title"] = "Kullanıcı Detayı";
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="/Dashboard/Index">Dashboard</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a asp-page="/Users/Index">Kullanıcılar</a>
+                </li>
+                <li class="breadcrumb-item active">@Model.User?.Email</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0">
+            <i class="fas fa-user text-primary me-2"></i>
+            Kullanıcı Detayı
+        </h2>
+    </div>
+    <div>
+        <a class="btn btn-outline-secondary me-2" asp-page="/Users/Index">
+            <i class="fas fa-arrow-left me-1"></i>Geri
+        </a>
+        <a class="btn btn-primary" asp-page="/Users/Edit" asp-route-id="@Model.User?.UserId">
+            <i class="fas fa-edit me-1"></i>Düzenle
+        </a>
+    </div>
+</div>
+
+@if (Model.User != null)
+{
+    <!-- User Info Card -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="avatar-xl bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-user fa-3x"></i>
+                    </div>
+                    <h4 class="mb-1">@Model.User.Email</h4>
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-phone me-1"></i>@(Model.User.PhoneNumber ?? "Telefon yok")
+                    </p>
+
+                    @if (Model.User.IsActive && Model.User.IsActivated)
+                    {
+                        <span class="badge bg-success mb-3">
+                            <i class="fas fa-check-circle me-1"></i>Aktif Kullanıcı
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger mb-3">
+                            <i class="fas fa-times-circle me-1"></i>Pasif Kullanıcı
+                        </span>
+                    }
+
+                    @if (!Model.User.IsActivated)
+                    {
+                        <br />
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Email Doğrulanmamış
+                        </span>
+                    }
+
+                    <hr />
+
+                    <div class="d-grid gap-2">
+                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@Model.User.UserId"
+                              onsubmit="return confirm('Kullanıcı durumunu değiştirmek istediğinize emin misiniz?');">
+                            <button type="submit" class="btn btn-@(Model.User.IsActive ? "warning" : "success") w-100">
+                                <i class="fas fa-@(Model.User.IsActive ? "ban" : "check") me-1"></i>
+                                @(Model.User.IsActive ? "Pasifleştir" : "Aktifleştir")
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <!-- Stats Cards -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-primary bg-opacity-10 text-primary rounded">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="text-muted mb-0 small">Toplam Gönderim</h6>
+                                    <h4 class="mb-0">@Model.Stats.TotalSubmissions</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-success bg-opacity-10 text-success rounded">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="text-muted mb-0 small">Başarılı</h6>
+                                    <h4 class="mb-0">@Model.Stats.SuccessfulSubmissions</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-danger bg-opacity-10 text-danger rounded">
+                                        <i class="fas fa-times-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="text-muted mb-0 small">Başarısız</h6>
+                                    <h4 class="mb-0">@Model.Stats.FailedSubmissions</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Details -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Kullanıcı Bilgileri
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Kullanıcı ID</label>
+                            <p class="mb-0"><strong>#@Model.User.UserId</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Email</label>
+                            <p class="mb-0"><strong>@Model.User.Email</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Telefon</label>
+                            <p class="mb-0"><strong>@(Model.User.PhoneNumber ?? "-")</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Kayıt Tarihi</label>
+                            <p class="mb-0"><strong>@Model.User.CreatedDate.ToString("dd.MM.yyyy HH:mm")</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Son Giriş</label>
+                            <p class="mb-0">
+                                <strong>
+                                    @if (Model.User.LastLoginDate.HasValue)
+                                    {
+                                        @Model.User.LastLoginDate.Value.ToString("dd.MM.yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Hiç giriş yapmamış</span>
+                                    }
+                                </strong>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Aktif Paket Sayısı</label>
+                            <p class="mb-0"><strong>@Model.Stats.ActivePackagesCount</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Packages -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="fas fa-box text-success me-2"></i>
+                Aktif Paketler (@Model.ActivePackages.Count)
+            </h5>
+        </div>
+        <div class="card-body">
+            @if (Model.ActivePackages.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Paket Adı</th>
+                                <th>Grup</th>
+                                <th>Satın Alma</th>
+                                <th>Aktivasyon</th>
+                                <th>Bitiş</th>
+                                <th>Tutar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var package in Model.ActivePackages)
+                            {
+                                <tr>
+                                    <td><strong>@package.PackageName</strong></td>
+                                    <td>
+                                        <span class="badge bg-info">@package.GroupName</span>
+                                    </td>
+                                    <td>@package.PurchaseDate.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (package.ActivationDate.HasValue)
+                                        {
+                                            @package.ActivationDate.Value.ToString("dd.MM.yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (package.ExpiryDate.HasValue)
+                                        {
+                                            @package.ExpiryDate.Value.ToString("dd.MM.yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Süresiz</span>
+                                        }
+                                    </td>
+                                    <td><strong>@package.PaymentAmount.ToString("0.##") TL</strong></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Aktif paket bulunmuyor</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Google Sheets -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="fab fa-google text-success me-2"></i>
+                Google Sheets Bağlantıları (@Model.GoogleSheets.Count)
+            </h5>
+        </div>
+        <div class="card-body">
+            @if (Model.GoogleSheets.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Grup</th>
+                                <th>Sheet Adı</th>
+                                <th>Oluşturma</th>
+                                <th>Son Güncelleme</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sheet in Model.GoogleSheets)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">@sheet.GroupName</span>
+                                    </td>
+                                    <td><strong>@sheet.SheetName</strong></td>
+                                    <td>@sheet.CreatedDate.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (sheet.LastUpdatedDate.HasValue)
+                                        {
+                                            @sheet.LastUpdatedDate.Value.ToString("dd.MM.yyyy HH:mm")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="@sheet.SpreadsheetUrl" target="_blank" class="btn btn-sm btn-success">
+                                            <i class="fas fa-external-link-alt me-1"></i>Aç
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="fab fa-google fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Bağlı Google Sheets bulunmuyor</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Expired Packages -->
+    @if (Model.ExpiredPackages.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history text-muted me-2"></i>
+                    Geçmiş Paketler (@Model.ExpiredPackages.Count)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Paket Adı</th>
+                                <th>Grup</th>
+                                <th>Satın Alma</th>
+                                <th>Bitiş</th>
+                                <th>Tutar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var package in Model.ExpiredPackages)
+                            {
+                                <tr class="text-muted">
+                                    <td>@package.PackageName</td>
+                                    <td>@package.GroupName</td>
+                                    <td>@package.PurchaseDate.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (package.ExpiryDate.HasValue)
+                                        {
+                                            @package.ExpiryDate.Value.ToString("dd.MM.yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
+                                    <td>@package.PaymentAmount.ToString("0.##") TL</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Kullanıcı bulunamadı.
+    </div>
+}

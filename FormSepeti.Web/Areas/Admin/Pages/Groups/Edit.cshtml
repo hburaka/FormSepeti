@@ -1,0 +1,242 @@
+﻿@page "{id:int}"
+@model FormSepeti.Web.Areas.Admin.Pages.Groups.EditModel
+@{
+    ViewData["Title"] = "Grup Düzenle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Groups/Index">Gruplar</a>
+            </li>
+            <li class="breadcrumb-item active">@Model.Input.GroupName - Düzenle</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-edit text-primary me-2"></i>
+        Grup Düzenle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-layer-group me-2"></i>
+                    Grup Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Input.GroupId" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.GroupName" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Grup Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.GroupName"
+                               class="form-control"
+                               placeholder="Örn: Emlak Formları" />
+                        <span asp-validation-for="Input.GroupName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>Grup Açıklaması
+                        </label>
+                        <textarea asp-for="Input.Description"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Grup hakkında kısa açıklama..."></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-icons me-1"></i>Görünüm Ayarları
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.IconUrl" class="form-label">
+                            İkon CSS Class
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i id="iconPreview" class="@Model.Input.IconUrl"></i>
+                            </span>
+                            <input asp-for="Input.IconUrl"
+                                   class="form-control font-monospace"
+                                   placeholder="fas fa-building"
+                                   id="iconInput" />
+                        </div>
+                        <span asp-validation-for="Input.IconUrl" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.SortOrder" class="form-label">
+                            <i class="fas fa-sort-numeric-down me-1"></i>Sıra Numarası <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.SortOrder"
+                               class="form-control"
+                               type="number"
+                               min="1"
+                               max="999" />
+                        <span asp-validation-for="Input.SortOrder" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   id="isActiveSwitch" />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Grup Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa grup kullanıcılara görünmez
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Groups/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Stats Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Grup İstatistikleri
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Form Sayısı:</span>
+                    <strong>@Model.FormCount</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Paket Sayısı:</span>
+                    <strong>@Model.PackageCount</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Grup ID:</span>
+                    <strong>#@Model.Input.GroupId</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assigned Forms -->
+        @if (Model.AssignedForms.Any())
+        {
+            <div class="card border-info mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Atanmış Formlar (@Model.FormCount)
+                    </h6>
+                </div>
+                <div class="card-body p-2">
+                    @foreach (var form in Model.AssignedForms.Take(5))
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                            <div class="flex-grow-1">
+                                <strong class="d-block small">@form.FormName</strong>
+                                <small class="text-muted">
+                                    @if (form.IsFreeInGroup && !form.RequiresPackage)
+                                    {
+                                        <span class="badge bg-success badge-sm">Ücretsiz</span>
+                                    }
+                                    else if (form.RequiresPackage)
+                                    {
+                                        <span class="badge bg-warning text-dark badge-sm">Paket Gerekli</span>
+                                    }
+                                    <span class="ms-1">• Sıra: @form.SortOrder</span>
+                                </small>
+                            </div>
+                            <a href="/Admin/Forms/Edit/@form.FormId"
+                               class="btn btn-sm btn-outline-primary ms-2"
+                               data-bs-toggle="tooltip"
+                               title="Formu Düzenle">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    }
+                    @if (Model.AssignedForms.Count > 5)
+                    {
+                        <div class="text-center p-2">
+                            <small class="text-muted">ve @(Model.AssignedForms.Count - 5) form daha...</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Bilgi
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">Grup Düzenleme</h6>
+                <ul class="mb-0 ps-3 small">
+                    <li class="mb-2">
+                        Sıra değişikliği grup görünümünü etkiler
+                    </li>
+                    <li class="mb-2">
+                        Pasif gruplar kullanıcılara görünmez
+                    </li>
+                    <li class="mb-0">
+                        Form ve paketler etkilenmez
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Icon preview
+        const iconInput = document.getElementById('iconInput');
+        const iconPreview = document.getElementById('iconPreview');
+
+        if (iconInput) {
+            iconInput.addEventListener('input', function() {
+                const iconClass = this.value || 'fas fa-layer-group';
+                iconPreview.className = iconClass;
+            });
+        }
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+}

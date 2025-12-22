@@ -43,6 +43,13 @@ namespace FormSepeti.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<List<Form>> GetAllAsync()
+        {
+            return await _context.Forms
+                .OrderByDescending(f => f.CreatedDate)
+                .ToListAsync();
+        }
+
         public async Task<Form> CreateAsync(Form form)
         {
             _context.Forms.Add(form);

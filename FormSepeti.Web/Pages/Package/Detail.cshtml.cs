@@ -30,7 +30,7 @@ namespace FormSepeti.Web.Pages.Package
             _logger = logger;
         }
 
-        public Data.Entities.Package Package { get; set; }
+        public FormSepeti.Data.Entities.Package Package { get; set; }
         public FormGroup FormGroup { get; set; }
         public List<FormGroupMapping> FormsInPackage { get; set; } = new();
         public bool? UserHasThisPackage { get; set; } // ? Nullable yapýldý (login deðilse null)

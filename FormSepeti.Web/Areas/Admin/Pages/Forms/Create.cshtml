@@ -1,0 +1,213 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Forms.CreateModel
+@{
+    ViewData["Title"] = "Yeni Form Ekle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Forms/Index">Formlar</a>
+            </li>
+            <li class="breadcrumb-item active">Yeni Form</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-plus text-primary me-2"></i>
+        Yeni Form Ekle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Form Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.FormName" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Form Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.FormName"
+                               class="form-control"
+                               placeholder="Örn: İletişim Formu" />
+                        <span asp-validation-for="Input.FormName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.FormDescription" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>Form Açıklaması
+                        </label>
+                        <textarea asp-for="Input.FormDescription"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Formun kısa açıklaması..."></textarea>
+                        <span asp-validation-for="Input.FormDescription" class="text-danger small"></span>
+                        <small class="form-text text-muted">Opsiyonel</small>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-link me-1"></i>JotForm Bağlantısı
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.JotFormId" class="form-label">
+                            JotForm ID <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.JotFormId"
+                               class="form-control font-monospace"
+                               placeholder="Örn: 241234567890123" />
+                        <span asp-validation-for="Input.JotFormId" class="text-danger small"></span>
+                        <small class="form-text text-muted">
+                            JotForm URL'inden form ID'sini alın: https://form.jotform.com/<strong>241234567890123</strong>
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.JotFormEmbedCode" class="form-label">
+                            JotForm Embed Kodu
+                        </label>
+                        <textarea asp-for="Input.JotFormEmbedCode"
+                                  class="form-control font-monospace"
+                                  rows="4"
+                                  placeholder='<script src="https://form.jotform.com/jsform/241234567890123"></script>'></textarea>
+                        <span asp-validation-for="Input.JotFormEmbedCode" class="text-danger small"></span>
+                        <small class="form-text text-muted">Opsiyonel - JotForm'dan alınan embed script kodu</small>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fab fa-google me-1"></i>Google Sheets Ayarları
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.GoogleSheetName" class="form-label">
+                            Google Sheet Adı
+                        </label>
+                        <input asp-for="Input.GoogleSheetName"
+                               class="form-control"
+                               placeholder="Örn: İletişim Formları" />
+                        <span asp-validation-for="Input.GoogleSheetName" class="text-danger small"></span>
+                        <small class="form-text text-muted">
+                            Opsiyonel - Veriler bu isimle sheet'e kaydedilecek
+                        </small>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   id="isActiveSwitch"
+                                   checked />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Form Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa form kullanıcılara görünmez
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Forms/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Formu Oluştur
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Yardım
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">Form Ekleme</h6>
+                <ul class="mb-0 ps-3 small">
+                    <li class="mb-2">
+                        <strong>JotForm ID:</strong> Form URL'indeki sayı dizisi
+                    </li>
+                    <li class="mb-2">
+                        <strong>Embed Kodu:</strong> JotForm'dan "Embed" butonundan alınır
+                    </li>
+                    <li class="mb-2">
+                        <strong>Sheet Adı:</strong> Google Sheets'te oluşturulacak tab ismi
+                    </li>
+                    <li class="mb-0">
+                        <strong>Aktif Durum:</strong> Form gruplarında görünür olmasını sağlar
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Example Card -->
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Örnek
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Form URL:</strong></p>
+                <code class="small">https://form.jotform.com/241234567890123</code>
+
+                <p class="mb-2 mt-3"><strong>Kolaytik ID:</strong></p>
+                <code class="small">241234567890123</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // JotForm ID validation
+        const jotFormIdInput = document.querySelector('input[name="Input.JotFormId"]');
+        if (jotFormIdInput) {
+            jotFormIdInput.addEventListener('blur', function() {
+                var pattern = /^\d{15,20}$/;
+                if (this.value && !this.value.match(pattern)) {
+                    this.classList.add('is-invalid');
+                    if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                        var feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback d-block';
+                        feedback.textContent = 'JotForm ID 15-20 haneli sayı olmalıdır';
+                        this.parentNode.insertBefore(feedback, this.nextSibling);
+                    }
+                } else {
+                    this.classList.remove('is-invalid');
+                    var feedback = this.parentNode.querySelector('.invalid-feedback');
+                    if (feedback) feedback.remove();
+                }
+            });
+        }
+    </script>
+}

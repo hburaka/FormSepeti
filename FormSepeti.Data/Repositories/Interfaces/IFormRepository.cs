@@ -10,6 +10,7 @@ namespace FormSepeti.Data.Repositories.Interfaces
         Task<Form> GetByJotFormIdAsync(string jotFormId);
         Task<List<Form>> GetByGroupIdAsync(int groupId);
         Task<List<Form>> GetAllActiveAsync();
+        Task<List<Form>> GetAllAsync(); 
         Task<Form> CreateAsync(Form form);
         Task<bool> UpdateAsync(Form form);
         Task<bool> DeleteAsync(int formId);

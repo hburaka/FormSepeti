@@ -34,7 +34,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
-.AddCookie(options =>
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
@@ -58,6 +58,40 @@ builder.Services.AddAuthentication(options =>
         {
             context.Response.StatusCode = 401;
             context.Response.Redirect(options.LoginPath);
+            return Task.CompletedTask;
+        }
+    };
+})
+.AddCookie("AdminScheme", options =>
+{
+    options.LoginPath = "/Admin/Account/Login";
+    options.LogoutPath = "/Admin/Account/Logout";
+    options.AccessDeniedPath = "/Admin/Account/AccessDenied";
+    
+    // ✅ ADMIN GÜVENLİK AYARLARI
+    options.Cookie.Name = ".FormSepeti.Admin";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;  // Admin için daha katı
+    options.Cookie.IsEssential = true;
+    
+    // ✅ ADMIN OTURUM SÜRESİ - Daha kısa (4 saat)
+    options.ExpireTimeSpan = TimeSpan.FromHours(4);
+    options.SlidingExpiration = true;
+    
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnRedirectToLogin = context =>
+        {
+            // Admin area için özel yönlendirme
+            if (context.Request.Path.StartsWithSegments("/Admin"))
+            {
+                context.Response.Redirect("/Admin/Account/Login");
+            }
+            else
+            {
+                context.Response.StatusCode = 401;
+            }
             return Task.CompletedTask;
         }
     };
@@ -110,7 +144,24 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Admin policy - sadece admin cookie ile
+    options.AddPolicy("AdminOnly", policy =>
+    {
+        policy.AuthenticationSchemes.Add("AdminScheme");
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("Role", "SuperAdmin", "Admin", "Editor");
+    });
+
+    // SuperAdmin policy
+    options.AddPolicy("SuperAdminOnly", policy =>
+    {
+        policy.AuthenticationSchemes.Add("AdminScheme");
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("Role", "SuperAdmin");
+    });
+});
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -132,6 +183,10 @@ builder.Services.AddScoped<IUserPackageRepository, UserPackageRepository>();
 builder.Services.AddScoped<IFormSubmissionRepository, FormSubmissionRepository>();
 builder.Services.AddScoped<IEmailLogRepository, EmailLogRepository>();
 
+// Admin Repositories
+builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+
 // Services
 builder.Services.AddScoped<IGoogleSheetsService, GoogleSheetsService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
@@ -144,6 +199,9 @@ builder.Services.AddScoped<IFormService, FormService>();
 builder.Services.AddScoped<ILoginAttemptService, LoginAttemptService>(); // Buraya ekledim
 // ✅ YENİ - Rate Limiting Servisi (Singleton olmalı - uygulama boyunca tek instance)
 builder.Services.AddSingleton<ILoginAttemptService, LoginAttemptService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 builder.Services.AddHttpClient<IJotFormService, JotFormService>(client =>
 {
@@ -243,6 +301,9 @@ if (app.Environment.IsDevelopment())
                 dbContext.Database.Migrate();
                 Console.WriteLine("✓ Database migrations applied successfully");
             }
+            
+            // ✅ YENİ: Admin seeder'ı çalıştır
+            await FormSepeti.Web.Data.AdminSeeder.SeedDefaultAdminAsync(dbContext);
         }
         catch (Exception ex)
         {

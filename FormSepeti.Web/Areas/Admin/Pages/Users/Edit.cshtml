@@ -1,0 +1,205 @@
+﻿@page "{id:int}"
+@model FormSepeti.Web.Areas.Admin.Pages.Users.EditModel
+@{
+    ViewData["Title"] = "Kullanıcı Düzenle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Users/Index">Kullanıcılar</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Users/Detail" asp-route-id="@Model.Input.UserId">@Model.Input.Email</a>
+            </li>
+            <li class="breadcrumb-item active">Düzenle</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-edit text-primary me-2"></i>
+        Kullanıcı Düzenle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Kullanıcı Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Input.UserId" />
+                    
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label">
+                            <i class="fas fa-envelope me-1"></i>Email Adresi
+                        </label>
+                        <input asp-for="Input.Email" 
+                               class="form-control" 
+                               placeholder="ornek@email.com" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.PhoneNumber" class="form-label">
+                            <i class="fas fa-phone me-1"></i>Telefon Numarası
+                        </label>
+                        <input asp-for="Input.PhoneNumber" 
+                               class="form-control" 
+                               placeholder="+90 555 123 45 67" />
+                        <span asp-validation-for="Input.PhoneNumber" class="text-danger small"></span>
+                        <small class="form-text text-muted">Opsiyonel</small>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-cog me-1"></i>Durum Ayarları
+                        </h6>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input asp-for="Input.IsActive" 
+                                   class="form-check-input" 
+                                   type="checkbox"
+                                   id="isActiveSwitch" />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Kullanıcı Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa kullanıcı sisteme giriş yapamaz
+                                </small>
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActivated" 
+                                   class="form-check-input" 
+                                   type="checkbox"
+                                   id="isActivatedSwitch" />
+                            <label class="form-check-label" for="isActivatedSwitch">
+                                <strong>Email Doğrulanmış</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kullanıcının email adresini manuel olarak doğrula
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Users/Detail" 
+                           asp-route-id="@Model.Input.UserId" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Bilgi
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">Kullanıcı Düzenleme</h6>
+                <ul class="mb-0 ps-3">
+                    <li class="mb-2">
+                        <small>Email değişikliği kullanıcının yeniden giriş yapmasını gerektirir</small>
+                    </li>
+                    <li class="mb-2">
+                        <small>Pasif kullanıcılar sisteme giriş yapamaz</small>
+                    </li>
+                    <li class="mb-2">
+                        <small>Email doğrulaması manuel olarak aktif edilebilir</small>
+                    </li>
+                    <li class="mb-0">
+                        <small>Telefon numarası opsiyoneldir</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Warning Card -->
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Dikkat
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">
+                    <small>
+                        <strong>Kullanıcıyı pasifleştirmek:</strong> 
+                        Kullanıcının tüm aktif oturumlarını sonlandırır ve sisteme giriş yapmasını engeller.
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Form submit confirmation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const isActive = document.getElementById('isActiveSwitch').checked;
+            
+            if (!isActive) {
+                if (!confirm('Kullanıcıyı pasifleştirmek istediğinize emin misiniz? Bu işlem kullanıcının sisteme erişimini engelleyecektir.')) {
+                    e.preventDefault();
+                }
+            }
+        });
+
+        // Real-time validation feedback
+        const emailInput = document.querySelector('input[name="Input.Email"]');
+        if (emailInput) {
+            emailInput.addEventListener('blur', function() {
+
+                var emailPattern = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                if (this.value && !this.value.match(emailPattern)) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                }
+            });
+        }
+
+        const phoneInput = document.querySelector('input[name="Input.PhoneNumber"]');
+        if (phoneInput) {
+            phoneInput.addEventListener('blur', function() {
+                var phonePattern = /^[\d\s\+\(\)\-]+$/;
+                if (this.value && !this.value.match(phonePattern)) {
+                    this.classList.add('is-invalid');
+                } else if (this.value) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                }
+            });
+        }
+    </script>
+}

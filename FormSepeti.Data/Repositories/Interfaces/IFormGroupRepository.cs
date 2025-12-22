@@ -8,6 +8,7 @@ namespace FormSepeti.Data.Repositories.Interfaces
     {
         Task<FormGroup> GetByIdAsync(int groupId);
         Task<List<FormGroup>> GetAllActiveAsync();
+        Task<List<FormGroup>> GetAllAsync(); // ✅ Bu metodu ekle
         Task<List<FormGroup>> GetGroupsWithFreeFormsAsync();
         Task<FormGroup> CreateAsync(FormGroup group);
         Task<bool> UpdateAsync(FormGroup group);

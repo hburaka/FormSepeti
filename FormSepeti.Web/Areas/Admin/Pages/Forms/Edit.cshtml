@@ -1,0 +1,251 @@
+﻿@page "{id:int}"
+@model FormSepeti.Web.Areas.Admin.Pages.Forms.EditModel
+@{
+    ViewData["Title"] = "Form Düzenle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Forms/Index">Formlar</a>
+            </li>
+            <li class="breadcrumb-item active">@Model.Input.FormName - Düzenle</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-edit text-primary me-2"></i>
+        Form Düzenle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Form Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Input.FormId" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.FormName" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Form Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.FormName"
+                               class="form-control"
+                               placeholder="Örn: İletişim Formu" />
+                        <span asp-validation-for="Input.FormName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.FormDescription" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>Form Açıklaması
+                        </label>
+                        <textarea asp-for="Input.FormDescription"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Formun kısa açıklaması..."></textarea>
+                        <span asp-validation-for="Input.FormDescription" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-link me-1"></i>JotForm Bağlantısı
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.JotFormId" class="form-label">
+                            JotForm ID <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.JotFormId"
+                               class="form-control font-monospace"
+                               placeholder="Örn: 241234567890123" />
+                        <span asp-validation-for="Input.JotFormId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.JotFormEmbedCode" class="form-label">
+                            JotForm Embed Kodu
+                        </label>
+                        <textarea asp-for="Input.JotFormEmbedCode"
+                                  class="form-control font-monospace"
+                                  rows="4"
+                                  placeholder='<script src="https://form.jotform.com/jsform/241234567890123"></script>'></textarea>
+                        <span asp-validation-for="Input.JotFormEmbedCode" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fab fa-google me-1"></i>Google Sheets Ayarları
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.GoogleSheetName" class="form-label">
+                            Google Sheet Adı
+                        </label>
+                        <input asp-for="Input.GoogleSheetName"
+                               class="form-control"
+                               placeholder="Örn: İletişim Formları" />
+                        <span asp-validation-for="Input.GoogleSheetName" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   id="isActiveSwitch" />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Form Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa form kullanıcılara görünmez
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Forms/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Stats Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Form İstatistikleri
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Bağlı Grup Sayısı:</span>
+                    <strong>@Model.GroupCount</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Form ID:</span>
+                    <strong>#@Model.Input.FormId</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning Card -->
+        @if (Model.GroupCount > 0)
+        {
+            <div class="card border-info mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-layer-group me-2"></i>Atanmış Gruplar (@Model.GroupCount)
+                    </h6>
+                </div>
+                <div class="card-body p-2">
+                    @foreach (var group in Model.AssignedGroups)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                            <div class="flex-grow-1">
+                                <strong class="d-block">@group.GroupName</strong>
+                                <small class="text-muted">
+                                    @if (group.IsFreeInGroup && !group.RequiresPackage)
+                                    {
+                                        <span class="badge bg-success badge-sm">Ücretsiz</span>
+                                    }
+                                    else if (group.RequiresPackage)
+                                    {
+                                        <span class="badge bg-warning text-dark badge-sm">Paket Gerekli</span>
+                                    }
+                                    <span class="ms-1">• Sıra: @group.SortOrder</span>
+                                </small>
+                            </div>
+                            <a href="/Admin/Groups/Edit/@group.GroupId" 
+                               class="btn btn-sm btn-outline-primary ms-2"
+                               data-bs-toggle="tooltip" 
+                               title="Grubu Düzenle">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-warning text-dark small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>Dikkat:</strong> JotForm ID değişikliği tüm grup entegrasyonlarını etkiler.
+                </div>
+            </div>
+        }
+
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Bilgi
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">Form Düzenleme</h6>
+                <ul class="mb-0 ps-3 small">
+                    <li class="mb-2">
+                        JotForm ID değişikliği formu etkiler
+                    </li>
+                    <li class="mb-2">
+                        Pasif formlar kullanıcılara görünmez
+                    </li>
+                    <li class="mb-0">
+                        Sheet adı değişikliği yeni gönderimlerden geçerlidir
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // JotForm ID validation
+        const jotFormIdInput = document.querySelector('input[name="Input.JotFormId"]');
+        if (jotFormIdInput) {
+            jotFormIdInput.addEventListener('blur', function() {
+                var pattern = /^\d{15,20}$/;
+                if (this.value && !this.value.match(pattern)) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        }
+
+        // Warn on JotForm ID change
+        const originalJotFormId = jotFormIdInput ? jotFormIdInput.value : '';
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (jotFormIdInput && jotFormIdInput.value !== originalJotFormId) {
+                if (!confirm('JotForm ID değişikliği mevcut entegrasyonları etkileyebilir. Devam etmek istediğinize emin misiniz?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
+}

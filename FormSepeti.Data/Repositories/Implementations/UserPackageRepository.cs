@@ -78,5 +78,33 @@ namespace FormSepeti.Data.Repositories.Implementations
             _context.UserPackages.Remove(userPackage);
             return await _context.SaveChangesAsync() > 0;
         }
+
+        public async Task<List<UserPackage>> GetByUserIdAsync(int userId)
+        {
+            return await _context.UserPackages
+                .Where(up => up.UserId == userId)
+                .OrderByDescending(up => up.PurchaseDate)
+                .ToListAsync();
+        }
+
+        public async Task<List<UserPackage>> GetActivePackagesByUserIdAsync(int userId)
+        {
+            return await _context.UserPackages
+                .Where(up => up.UserId == userId && up.IsActive)
+                .ToListAsync();
+        }
+
+        public async Task<List<UserPackage>> GetByPackageIdAsync(int packageId)
+        {
+            return await _context.UserPackages
+                .Where(up => up.PackageId == packageId)
+                .ToListAsync();
+        }
+
+        public async Task<List<UserPackage>> GetAllAsync()
+        {
+            return await _context.UserPackages
+                .ToListAsync();
+        }
     }
 }

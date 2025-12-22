@@ -13,5 +13,9 @@ namespace FormSepeti.Data.Repositories.Interfaces
         Task<UserPackage> CreateAsync(UserPackage userPackage);
         Task<bool> UpdateAsync(UserPackage userPackage);
         Task<bool> DeleteAsync(int userPackageId);
+        Task<List<UserPackage>> GetByUserIdAsync(int userId);
+        Task<List<UserPackage>> GetActivePackagesByUserIdAsync(int userId);
+        Task<List<UserPackage>> GetByPackageIdAsync(int packageId);
+        Task<List<UserPackage>> GetAllAsync();
     }
 }

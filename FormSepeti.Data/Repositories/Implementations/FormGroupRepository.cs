@@ -21,6 +21,13 @@ namespace FormSepeti.Data.Repositories.Implementations
             return await _context.FormGroups.FindAsync(groupId);
         }
 
+        public async Task<List<FormGroup>> GetAllAsync()
+        {
+            return await _context.FormGroups
+                .OrderBy(g => g.SortOrder)
+                .ToListAsync();
+        }
+
         public async Task<List<FormGroup>> GetAllActiveAsync()
         {
             return await _context.FormGroups

@@ -40,6 +40,14 @@ namespace FormSepeti.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<List<Package>> GetAllAsync()
+        {
+            return await _context.Packages
+                .Include(p => p.FormGroup)
+                .OrderByDescending(p => p.CreatedDate)
+                .ToListAsync();
+        }
+
         public async Task<Package> CreateAsync(Package package)
         {
             _context.Packages.Add(package);

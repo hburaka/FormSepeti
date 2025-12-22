@@ -1,0 +1,251 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Groups.CreateModel
+@{
+    ViewData["Title"] = "Yeni Grup Ekle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Groups/Index">Gruplar</a>
+            </li>
+            <li class="breadcrumb-item active">Yeni Grup</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-plus text-primary me-2"></i>
+        Yeni Grup Ekle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-layer-group me-2"></i>
+                    Grup Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.GroupName" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Grup Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.GroupName"
+                               class="form-control"
+                               placeholder="Örn: Emlak Formları" />
+                        <span asp-validation-for="Input.GroupName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>Grup Açıklaması
+                        </label>
+                        <textarea asp-for="Input.Description"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Grup hakkında kısa açıklama..."></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-icons me-1"></i>Görünüm Ayarları
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.IconUrl" class="form-label">
+                            İkon CSS Class
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i id="iconPreview" class="fas fa-layer-group"></i>
+                            </span>
+                            <input asp-for="Input.IconUrl"
+                                   class="form-control font-monospace"
+                                   placeholder="fas fa-building"
+                                   id="iconInput" />
+                        </div>
+                        <span asp-validation-for="Input.IconUrl" class="text-danger small"></span>
+                        <small class="form-text text-muted">
+                            FontAwesome icon class. Örnek: fas fa-building, fas fa-user-md
+                        </small>
+
+                        <!-- Icon Suggestions -->
+                        <div class="mt-2">
+                            <small class="text-muted"><strong>Popüler İkonlar:</strong></small>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-icon="fas fa-building">
+                                    <i class="fas fa-building me-1"></i>Emlak
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-icon="fas fa-user-md">
+                                    <i class="fas fa-user-md me-1"></i>Sağlık
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-icon="fas fa-graduation-cap">
+                                    <i class="fas fa-graduation-cap me-1"></i>Eğitim
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-icon="fas fa-briefcase">
+                                    <i class="fas fa-briefcase me-1"></i>İş
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-icon="fas fa-shopping-cart">
+                                    <i class="fas fa-shopping-cart me-1"></i>E-Ticaret
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-icon="fas fa-users">
+                                    <i class="fas fa-users me-1"></i>Müşteri
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.SortOrder" class="form-label">
+                            <i class="fas fa-sort-numeric-down me-1"></i>Sıra Numarası <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.SortOrder"
+                               class="form-control"
+                               type="number"
+                               min="1"
+                               max="999"
+                               placeholder="1" />
+                        <span asp-validation-for="Input.SortOrder" class="text-danger small"></span>
+                        <small class="form-text text-muted">
+                            Grupların sıralanmasını belirler. Küçük sayılar önce görünür.
+                        </small>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   id="isActiveSwitch"
+                                   checked />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Grup Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa grup kullanıcılara görünmez
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Groups/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Grubu Oluştur
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Preview Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>Önizleme
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <div class="avatar-xl bg-primary bg-opacity-10 text-primary rounded-circle mx-auto d-flex align-items-center justify-content-center">
+                        <i id="previewIcon" class="fas fa-layer-group fa-3x"></i>
+                    </div>
+                </div>
+                <h5 id="previewName" class="mb-2">Grup Adı</h5>
+                <p id="previewDescription" class="text-muted small mb-0">Grup açıklaması buraya gelecek...</p>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Yardım
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-2">Grup Oluşturma</h6>
+                <ul class="mb-0 ps-3 small">
+                    <li class="mb-2">
+                        <strong>Grup Adı:</strong> Kullanıcılara gösterilecek isim
+                    </li>
+                    <li class="mb-2">
+                        <strong>İkon:</strong> FontAwesome icon class'ı
+                    </li>
+                    <li class="mb-2">
+                        <strong>Sıra:</strong> Grupların görüntülenme sırası
+                    </li>
+                    <li class="mb-0">
+                        <strong>Aktif:</strong> Grup kullanıcılara görünür mü?
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Icon preview
+        const iconInput = document.getElementById('iconInput');
+        const iconPreview = document.getElementById('iconPreview');
+        const previewIcon = document.getElementById('previewIcon');
+
+        if (iconInput) {
+            iconInput.addEventListener('input', function() {
+                const iconClass = this.value || 'fas fa-layer-group';
+                iconPreview.className = iconClass;
+                previewIcon.className = iconClass + ' fa-3x';
+            });
+        }
+
+        // Icon buttons
+        document.querySelectorAll('.icon-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const icon = this.getAttribute('data-icon');
+                iconInput.value = icon;
+                iconInput.dispatchEvent(new Event('input'));
+            });
+        });
+
+        // Name preview
+        const nameInput = document.querySelector('input[name="Input.GroupName"]');
+        const previewName = document.getElementById('previewName');
+
+        if (nameInput) {
+            nameInput.addEventListener('input', function() {
+                previewName.textContent = this.value || 'Grup Adı';
+            });
+        }
+
+        // Description preview
+        const descInput = document.querySelector('textarea[name="Input.Description"]');
+        const previewDescription = document.getElementById('previewDescription');
+
+        if (descInput) {
+            descInput.addEventListener('input', function() {
+                previewDescription.textContent = this.value || 'Grup açıklaması buraya gelecek...';
+            });
+        }
+    </script>
+}

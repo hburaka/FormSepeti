@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using FormSepeti.Data.Entities;
 
 namespace FormSepeti.Data.Repositories.Interfaces
@@ -19,5 +20,6 @@ namespace FormSepeti.Data.Repositories.Interfaces
         Task<User?> GetByTCKimlikNoAsync(string tcKimlikNo);
         Task<User?> GetByTaxNumberAsync(string taxNumber);
 
+        Task<List<User>> GetAllAsync(); 
     }
 }
