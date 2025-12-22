@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+ï»¿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections.Generic;
@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using FormSepeti.Data.Entities;
 using FormSepeti.Data.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Text;
+using FormSepeti.Services.Interfaces;
 
 namespace FormSepeti.Web.Areas.Admin.Pages.Users
 {
@@ -15,15 +17,18 @@ namespace FormSepeti.Web.Areas.Admin.Pages.Users
     {
         private readonly IUserRepository _userRepository;
         private readonly IUserPackageRepository _userPackageRepository;
+        private readonly IExportService _exportService; 
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
             IUserRepository userRepository,
             IUserPackageRepository userPackageRepository,
+            IExportService exportService, 
             ILogger<IndexModel> logger)
         {
             _userRepository = userRepository;
             _userPackageRepository = userPackageRepository;
+            _exportService = exportService; 
             _logger = logger;
         }
 
@@ -43,7 +48,7 @@ namespace FormSepeti.Web.Areas.Admin.Pages.Users
             _logger.LogInformation("Admin viewing users list - SearchTerm: {SearchTerm}, StatusFilter: {StatusFilter}",
                 SearchTerm, StatusFilter);
 
-            // Tüm kullanýcýlarý al
+            // TÃ¼m kullanÄ±cÄ±larÄ± al
             var allUsers = await _userRepository.GetAllAsync();
 
             // Filtreleme
@@ -65,7 +70,7 @@ namespace FormSepeti.Web.Areas.Admin.Pages.Users
                 filteredUsers = filteredUsers.Where(u => !u.IsActive || !u.IsActivated);
             }
 
-            // Her kullanýcý için aktif paket sayýsýný al
+            // Her kullanÄ±cÄ± iÃ§in aktif paket sayÄ±sÄ±nÄ± al
             Users = new List<UserViewModel>();
             foreach (var user in filteredUsers.OrderByDescending(u => u.CreatedDate))
             {
@@ -84,7 +89,7 @@ namespace FormSepeti.Web.Areas.Admin.Pages.Users
                 });
             }
 
-            // Ýstatistikler
+            // Ä°statistikler
             TotalUsers = allUsers.Count;
             ActiveUsers = allUsers.Count(u => u.IsActive && u.IsActivated);
             InactiveUsers = TotalUsers - ActiveUsers;
@@ -97,15 +102,35 @@ namespace FormSepeti.Web.Areas.Admin.Pages.Users
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
             {
-                TempData["ErrorMessage"] = "Kullanýcý bulunamadý.";
+                TempData["ErrorMessage"] = "KullanÄ±cÄ± bulunamadÄ±.";
                 return RedirectToPage();
             }
 
             user.IsActive = !user.IsActive;
             await _userRepository.UpdateAsync(user);
 
-            TempData["SuccessMessage"] = $"Kullanýcý {(user.IsActive ? "aktif" : "pasif")} edildi.";
+            TempData["SuccessMessage"] = $"KullanÄ±cÄ± {(user.IsActive ? "aktif" : "pasif")} edildi.";
             return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnGetExportExcelAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+            var excelData = _exportService.ExportUsersToExcel(users); // âœ… Service kullan
+
+            return File(excelData, 
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                $"Users_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
+        }
+
+        public async Task<IActionResult> OnGetExportCsvAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+            var csvData = _exportService.ExportUsersToCsv(users); // âœ… Service kullan
+
+            return File(Encoding.UTF8.GetBytes(csvData), 
+                "text/csv", 
+                $"Users_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
         }
 
         public class UserViewModel

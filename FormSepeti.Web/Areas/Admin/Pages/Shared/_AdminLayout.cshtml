@@ -43,13 +43,110 @@
             min-height: 100vh;
             padding: 30px;
         }
+
+        /* Make offcanvas sidebar style closer to desktop */
+        .offcanvas.admin-offcanvas .offcanvas-body {
+            padding: 0;
+        }
+        .offcanvas.admin-offcanvas .admin-sidebar {
+            min-height: 100%;
+            border-radius: 0;
+            padding: 16px;
+        }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block admin-sidebar">
+            <!-- Mobile top bar (visible on small screens) -->
+            <nav class="navbar navbar-light bg-light d-md-none w-100">
+                <div class="container-fluid">
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminOffcanvas" aria-controls="adminOffcanvas" aria-label="Toggle navigation">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <span class="navbar-brand mb-0 h1 ms-2">Admin Panel</span>
+                </div>
+            </nav>
+
+            <!-- Offcanvas sidebar for mobile -->
+            <div class="offcanvas offcanvas-start admin-offcanvas d-md-none" tabindex="-1" id="adminOffcanvas" aria-labelledby="adminOffcanvasLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="adminOffcanvasLabel">Admin Panel</h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <nav class="admin-sidebar">
+                        <div class="position-sticky">
+                            <div class="text-center mb-4">
+                                <h4 class="text-white">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    Admin Panel
+                                </h4>
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    <p class="text-white-50 small mb-0">
+                                        @(User.FindFirst("FullName")?.Value ?? User.Identity.Name ?? "Admin")
+                                    </p>
+                                }
+                            </div>
+
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Dashboard/Index">
+                                        <i class="fas fa-home me-2"></i>Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Users/Index">
+                                        <i class="fas fa-users me-2"></i>Kullanıcılar
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Forms/Index">
+                                        <i class="fas fa-file-alt me-2"></i>Formlar
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Packages/Index">
+                                        <i class="fas fa-box me-2"></i>Paketler
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Groups/Index">
+                                        <i class="fas fa-layer-group me-2"></i>Gruplar
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Mappings/Index">
+                                        <i class="fas fa-layer-group me-2"></i>Form-Grup Eşleştirme
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Logs/Index">
+                                        <i class="fas fa-history me-2"></i>Loglar
+                                    </a>
+                                </li>
+
+                                <hr class="bg-white my-3" />
+
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Index" asp-area="">
+                                        <i class="fas fa-globe me-2"></i>Siteye Git
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Account/Logout">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Sidebar (desktop) -->
+            <nav class="col-md-3 col-lg-2 d-none d-md-block admin-sidebar">
                 <div class="position-sticky">
                     <div class="text-center mb-4">
                         <h4 class="text-white">
@@ -88,6 +185,11 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="Admin" asp-page="/Groups/Index">
                                 <i class="fas fa-layer-group me-2"></i>Gruplar
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="Admin" asp-page="/Mappings/Index">
+                                <i class="fas fa-layer-group me-2"></i>Mappings
                             </a>
                         </li>
                         <li class="nav-item">

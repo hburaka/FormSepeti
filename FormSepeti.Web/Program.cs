@@ -202,6 +202,7 @@ builder.Services.AddSingleton<ILoginAttemptService, LoginAttemptService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IExportService, ExportService>();
 
 builder.Services.AddHttpClient<IJotFormService, JotFormService>(client =>
 {

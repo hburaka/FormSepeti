@@ -1,0 +1,181 @@
+﻿@page "{id:int}"
+@model FormSepeti.Web.Areas.Admin.Pages.Admins.EditModel
+@{
+    ViewData["Title"] = "Admin Düzenle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Admins/Index">Admin Yönetimi</a>
+            </li>
+            <li class="breadcrumb-item active">@Model.Input.Username - Düzenle</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-edit text-danger me-2"></i>
+        Admin Düzenle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-shield me-2"></i>
+                    Admin Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Input.AdminId" />
+                    <input type="hidden" asp-for="Input.Username" />
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-user me-1"></i>Kullanıcı Adı
+                        </label>
+                        <input value="@Model.Input.Username"
+                               class="form-control"
+                               disabled
+                               readonly />
+                        <small class="form-text text-muted">Kullanıcı adı değiştirilemez.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.FullName" class="form-label">
+                            <i class="fas fa-id-card me-1"></i>Ad Soyad <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.FullName" class="form-control" />
+                        <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label">
+                            <i class="fas fa-envelope me-1"></i>Email <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.Email" class="form-control" type="email" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-key me-1"></i>Şifre Değiştir (Opsiyonel)
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.NewPassword" class="form-label">
+                            Yeni Şifre
+                        </label>
+                        <input asp-for="Input.NewPassword"
+                               class="form-control"
+                               type="password"
+                               autocomplete="new-password" />
+                        <span asp-validation-for="Input.NewPassword" class="text-danger small"></span>
+                        <small class="form-text text-muted">Boş bırakırsanız şifre değişmez.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ConfirmNewPassword" class="form-label">
+                            Yeni Şifre Onayı
+                        </label>
+                        <input asp-for="Input.ConfirmNewPassword"
+                               class="form-control"
+                               type="password"
+                               autocomplete="new-password" />
+                        <span asp-validation-for="Input.ConfirmNewPassword" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Role" class="form-label">
+                            <i class="fas fa-user-tag me-1"></i>Rol <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="Input.Role" class="form-select">
+                            <option value="Admin">Admin</option>
+                            <option value="Editor">Editor</option>
+                            <option value="SuperAdmin">SuperAdmin</option>
+                        </select>
+                        <span asp-validation-for="Input.Role" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive"
+                                   class="form-check-input"
+                                   type="checkbox"
+                                   id="isActiveSwitch" />
+                            <label class="form-check-label" for="isActiveSwitch">
+                                <strong>Admin Aktif</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Kapalıysa admin sisteme giriş yapamaz
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Admins/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-save me-1"></i>Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Info Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Admin Bilgileri
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Admin ID:</span>
+                    <strong>#@Model.Input.AdminId</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Kullanıcı Adı:</span>
+                    <strong>@Model.Input.Username</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning Card -->
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Dikkat
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-0 small">
+                    <strong>Rol değişikliği:</strong> Kendi rolünüzü değiştiremezsiniz.
+                    <br /><br />
+                    <strong>Şifre değişikliği:</strong> Admin bir sonraki girişinde yeni şifreyi kullanacaktır.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,360 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Mappings.IndexModel
+@{
+    ViewData["Title"] = "Form-Grup Eşleştirme";
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-link text-primary me-2"></i>
+            Form-Grup Eşleştirme
+        </h2>
+        <p class="text-muted mb-0">Formları gruplara atayın ve ayarlarını yönetin</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMappingModal">
+            <i class="fas fa-plus me-2"></i>Yeni Eşleştirme
+        </button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-primary bg-opacity-10 text-primary rounded">
+                            <i class="fas fa-link fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Toplam Eşleştirme</h6>
+                        <h3 class="mb-0">@Model.TotalMappings</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-success bg-opacity-10 text-success rounded">
+                            <i class="fas fa-gift fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Ücretsiz</h6>
+                        <h3 class="mb-0">@Model.FreeMappings</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-lg bg-warning bg-opacity-10 text-warning rounded">
+                            <i class="fas fa-lock fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Paket Gerekli</h6>
+                        <h3 class="mb-0">@Model.PackageRequiredMappings</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">
+                        <i class="fas fa-layer-group me-1"></i>Gruba Göre Filtrele
+                    </label>
+                    <select class="form-select" name="filterGroupId" onchange="this.form.submit()">
+                        <option value="">Tüm Gruplar</option>
+                        @foreach (var group in Model.AvailableGroups)
+                        {
+                            <option value="@group.Value" selected="@(Model.FilterGroupId?.ToString() == group.Value)">
+                                @group.Text
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">
+                        <i class="fas fa-file-alt me-1"></i>Forma Göre Filtrele
+                    </label>
+                    <select class="form-select" name="filterFormId" onchange="this.form.submit()">
+                        <option value="">Tüm Formlar</option>
+                        @foreach (var form in Model.AvailableForms)
+                        {
+                            <option value="@form.Value" selected="@(Model.FilterFormId?.ToString() == form.Value)">
+                                @form.Text
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <a asp-page="/Mappings/Index" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times me-1"></i>Temizle
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mappings Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Eşleştirme Listesi (@Model.Mappings.Count)
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Mappings.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Sıra</th>
+                            <th>Form</th>
+                            <th>Grup</th>
+                            <th>Ücretsiz</th>
+                            <th>Paket Gerekli</th>
+                            <th class="text-end pe-4">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mapping in Model.Mappings)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="badge bg-secondary">@mapping.SortOrder</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-alt text-primary me-2"></i>
+                                        <div>
+                                            <strong>@mapping.FormName</strong>
+                                            <br />
+                                            <small class="text-muted">ID: @mapping.FormId</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-layer-group me-1"></i>@mapping.GroupName
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (mapping.IsFreeInGroup)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Evet
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Hayır</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (mapping.RequiresPackage)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-lock me-1"></i>Evet
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Hayır</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group" role="group">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                onclick="editMapping(@mapping.MappingId, @mapping.IsFreeInGroup.ToString().ToLower(), @mapping.RequiresPackage.ToString().ToLower(), @mapping.SortOrder)"
+                                                data-bs-toggle="tooltip"
+                                                title="Düzenle">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <a class="btn btn-sm btn-outline-secondary"
+                                           asp-page="/Forms/Edit"
+                                           asp-route-id="@mapping.FormId"
+                                           data-bs-toggle="tooltip"
+                                           title="Formu Görüntüle">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <form method="post"
+                                              asp-page-handler="DeleteMapping"
+                                              asp-route-mappingId="@mapping.MappingId"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Bu eşleştirmeyi silmek istediğinize emin misiniz?');">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Sil">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Eşleştirme bulunamadı</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMappingModal">
+                    <i class="fas fa-plus me-1"></i>İlk Eşleştirmeyi Oluştur
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Create Mapping Modal -->
+<div class="modal fade" id="createMappingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="CreateMapping">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>Yeni Eşleştirme Oluştur
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Form <span class="text-danger">*</span></label>
+                        <select name="NewMapping.FormId" class="form-select" required>
+                            <option value="">Form Seçin</option>
+                            @foreach (var form in Model.AvailableForms)
+                            {
+                                <option value="@form.Value">@form.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grup <span class="text-danger">*</span></label>
+                        <select name="NewMapping.GroupId" class="form-select" required>
+                            <option value="">Grup Seçin</option>
+                            @foreach (var group in Model.AvailableGroups)
+                            {
+                                <option value="@group.Value">@group.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sıra</label>
+                        <input type="number" name="NewMapping.SortOrder" class="form-control" value="1" min="1" />
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" name="NewMapping.IsFreeInGroup" class="form-check-input" id="isFreeSwitch">
+                        <label class="form-check-label" for="isFreeSwitch">
+                            <strong>Ücretsiz</strong>
+                            <br /><small class="text-muted">Bu form grupta ücretsiz erişilebilir olsun mu?</small>
+                        </label>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" name="NewMapping.RequiresPackage" class="form-check-input" id="requiresPackageSwitch">
+                        <label class="form-check-label" for="requiresPackageSwitch">
+                            <strong>Paket Gerekli</strong>
+                            <br /><small class="text-muted">Bu forma erişim için paket satın alma gerekli mi?</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Mapping Modal -->
+<div class="modal fade" id="editMappingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="UpdateMapping" id="editMappingForm">
+                <input type="hidden" id="editMappingId" name="mappingId" />
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Eşleştirme Düzenle
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Sıra</label>
+                        <input type="number" id="editSortOrder" name="sortOrder" class="form-control" min="1" />
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" id="editIsFree" name="isFree" class="form-check-input">
+                        <label class="form-check-label" for="editIsFree">
+                            <strong>Ücretsiz</strong>
+                        </label>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" id="editRequiresPackage" name="requiresPackage" class="form-check-input">
+                        <label class="form-check-label" for="editRequiresPackage">
+                            <strong>Paket Gerekli</strong>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function editMapping(mappingId, isFree, requiresPackage, sortOrder) {
+            document.getElementById('editMappingId').value = mappingId;
+            document.getElementById('editIsFree').checked = isFree;
+            document.getElementById('editRequiresPackage').checked = requiresPackage;
+            document.getElementById('editSortOrder').value = sortOrder;
+
+            var modal = new bootstrap.Modal(document.getElementById('editMappingModal'));
+            modal.show();
+        }
+
+        // Tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+}

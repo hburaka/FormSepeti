@@ -1,0 +1,135 @@
+﻿@page
+@model FormSepeti.Web.Areas.Admin.Pages.Admins.CreateModel
+@{
+    ViewData["Title"] = "Yeni Admin Ekle";
+}
+
+<!-- Page Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item">
+                <a asp-page="/Dashboard/Index">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Admins/Index">Admin Yönetimi</a>
+            </li>
+            <li class="breadcrumb-item active">Yeni Admin</li>
+        </ol>
+    </nav>
+    <h2 class="mb-0">
+        <i class="fas fa-user-plus text-danger me-2"></i>
+        Yeni Admin Ekle
+    </h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-shield me-2"></i>
+                    Admin Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.Username" class="form-label">
+                            <i class="fas fa-user me-1"></i>Kullanıcı Adı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.Username"
+                               class="form-control"
+                               placeholder="admin_user"
+                               autocomplete="off" />
+                        <span asp-validation-for="Input.Username" class="text-danger small"></span>
+                        <small class="form-text text-muted">
+                            Sadece harf, rakam ve alt çizgi kullanabilirsiniz. (Örn: admin_user123)
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.FullName" class="form-label">
+                            <i class="fas fa-id-card me-1"></i>Ad Soyad <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.FullName"
+                               class="form-control"
+                               placeholder="Ahmet Yılmaz" />
+                        <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label">
+                            <i class="fas fa-envelope me-1"></i>Email <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.Email"
+                               class="form-control"
+                               placeholder="admin@formsepeti.com"
+                               type="email" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-key me-1"></i>Şifre Bilgileri
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label">
+                            Şifre <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.Password"
+                               class="form-control"
+                               type="password"
+                               autocomplete="new-password" />
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                        <small class="form-text text-muted">En az 6 karakter olmalıdır.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ConfirmPassword" class="form-label">
+                            Şifre Onayı <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.ConfirmPassword"
+                               class="form-control"
+                               type="password"
+                               autocomplete="new-password" />
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Role" class="form-label">
+                            <i class="fas fa-user-tag me-1"></i>Rol <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="Input.Role" class="form-select">
+                            <option value="Admin">Admin - Genel yönetim yetkisi</option>
+                            <option value="Editor">Editor - Sadece içerik düzenleme</option>
+                            <option value="SuperAdmin">SuperAdmin - Tüm yetkiler (Dikkatli kullanın!)</option>
+                        </select>
+                        <span asp-validation-for="Input.Role" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page="/Admins/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-save me-1"></i>Admin Oluştur
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Role Info Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Roller Hakkında
