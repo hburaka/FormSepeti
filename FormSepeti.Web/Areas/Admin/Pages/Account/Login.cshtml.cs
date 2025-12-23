@@ -2,12 +2,14 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using FormSepeti.Services.Interfaces;
 
 namespace FormSepeti.Web.Areas.Admin.Pages.Account
 {
+    [AllowAnonymous]
     public class LoginModel : PageModel
     {
         private readonly IAdminService _adminService;
@@ -33,13 +35,17 @@ namespace FormSepeti.Web.Areas.Admin.Pages.Account
 
         public string? ErrorMessage { get; set; }
 
-        public void OnGet()
+        public async Task<IActionResult> OnGetAsync(string? returnUrl = null)
         {
-            // Eðer zaten login ise dashboard'a yönlendir
-            if (User.Identity?.IsAuthenticated == true)
+            // Sadece AdminScheme ile doðrulanmýþsa yönlendir
+            var authResult = await HttpContext.AuthenticateAsync("AdminScheme");
+            if (authResult?.Succeeded == true && authResult.Principal?.Identity?.IsAuthenticated == true)
             {
-                Response.Redirect("/Admin/Dashboard");
+                return LocalRedirect(returnUrl ?? "/Admin/Dashboard");
             }
+
+            // Aksi halde login sayfasýný göster
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)

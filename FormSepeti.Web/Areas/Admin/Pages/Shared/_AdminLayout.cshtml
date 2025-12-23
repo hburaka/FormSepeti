@@ -5,37 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - FormSepeti Admin</title>
 
-    <!-- Bootstrap 5.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <style>
         .admin-sidebar {
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
             padding: 20px;
         }
 
             .admin-sidebar .nav-link {
-                color: rgba(255, 255, 255, 0.8);
+                color: rgba(255,255,255,.8);
                 padding: 12px 20px;
                 border-radius: 8px;
                 margin-bottom: 5px;
-                transition: all 0.3s;
+                transition: all .3s;
             }
 
-                .admin-sidebar .nav-link:hover,
-                .admin-sidebar .nav-link.active {
-                    background: rgba(255, 255, 255, 0.2);
-                    color: white;
+                .admin-sidebar .nav-link:hover, .admin-sidebar .nav-link.active {
+                    background: rgba(255,255,255,.2);
+                    color: #fff;
                 }
 
         .admin-content {
@@ -44,184 +35,74 @@
             padding: 30px;
         }
 
-        /* Make offcanvas sidebar style closer to desktop */
         .offcanvas.admin-offcanvas .offcanvas-body {
             padding: 0;
         }
+
         .offcanvas.admin-offcanvas .admin-sidebar {
             min-height: 100%;
             border-radius: 0;
             padding: 16px;
         }
+
+        .skip-link {
+            position: absolute;
+            left: -999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+            .skip-link:focus {
+                left: 10px;
+                top: 10px;
+                width: auto;
+                height: auto;
+                z-index: 1000;
+                background: #fff;
+                padding: 8px 12px;
+                border-radius: 4px;
+                box-shadow: 0 0 6px rgba(0,0,0,.2);
+            }
     </style>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">İçeriğe atla</a>
+
     <div class="container-fluid">
         <div class="row">
-            <!-- Mobile top bar (visible on small screens) -->
             <nav class="navbar navbar-light bg-light d-md-none w-100">
                 <div class="container-fluid">
-                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminOffcanvas" aria-controls="adminOffcanvas" aria-label="Toggle navigation">
-                        <i class="fas fa-bars"></i>
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminOffcanvas" aria-controls="adminOffcanvas" aria-label="Menüyü aç">
+                        <i class="fas fa-bars" aria-hidden="true"></i>
                     </button>
                     <span class="navbar-brand mb-0 h1 ms-2">Admin Panel</span>
                 </div>
             </nav>
 
-            <!-- Offcanvas sidebar for mobile -->
             <div class="offcanvas offcanvas-start admin-offcanvas d-md-none" tabindex="-1" id="adminOffcanvas" aria-labelledby="adminOffcanvasLabel">
                 <div class="offcanvas-header">
                     <h5 class="offcanvas-title" id="adminOffcanvasLabel">Admin Panel</h5>
-                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Kapat"></button>
                 </div>
                 <div class="offcanvas-body">
-                    <nav class="admin-sidebar">
-                        <div class="position-sticky">
-                            <div class="text-center mb-4">
-                                <h4 class="text-white">
-                                    <i class="fas fa-shield-alt me-2"></i>
-                                    Admin Panel
-                                </h4>
-                                @if (User.Identity?.IsAuthenticated == true)
-                                {
-                                    <p class="text-white-50 small mb-0">
-                                        @(User.FindFirst("FullName")?.Value ?? User.Identity.Name ?? "Admin")
-                                    </p>
-                                }
-                            </div>
-
-                            <ul class="nav flex-column">
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Dashboard/Index">
-                                        <i class="fas fa-home me-2"></i>Dashboard
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Users/Index">
-                                        <i class="fas fa-users me-2"></i>Kullanıcılar
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Forms/Index">
-                                        <i class="fas fa-file-alt me-2"></i>Formlar
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Packages/Index">
-                                        <i class="fas fa-box me-2"></i>Paketler
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Groups/Index">
-                                        <i class="fas fa-layer-group me-2"></i>Gruplar
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Mappings/Index">
-                                        <i class="fas fa-layer-group me-2"></i>Form-Grup Eşleştirme
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Logs/Index">
-                                        <i class="fas fa-history me-2"></i>Loglar
-                                    </a>
-                                </li>
-
-                                <hr class="bg-white my-3" />
-
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-page="/Index" asp-area="">
-                                        <i class="fas fa-globe me-2"></i>Siteye Git
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-page="/Account/Logout">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </nav>
+                    @await Html.PartialAsync("~/Areas/Admin/Pages/Shared/_AdminNav.cshtml")
                 </div>
             </div>
 
-            <!-- Sidebar (desktop) -->
-            <nav class="col-md-3 col-lg-2 d-none d-md-block admin-sidebar">
-                <div class="position-sticky">
-                    <div class="text-center mb-4">
-                        <h4 class="text-white">
-                            <i class="fas fa-shield-alt me-2"></i>
-                            Admin Panel
-                        </h4>
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <p class="text-white-50 small mb-0">
-                                @(User.FindFirst("FullName")?.Value ?? User.Identity.Name ?? "Admin")
-                            </p>
-                        }
-                    </div>
-
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Dashboard/Index">
-                                <i class="fas fa-home me-2"></i>Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Users/Index">
-                                <i class="fas fa-users me-2"></i>Kullanıcılar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Forms/Index">
-                                <i class="fas fa-file-alt me-2"></i>Formlar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Packages/Index">
-                                <i class="fas fa-box me-2"></i>Paketler
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Groups/Index">
-                                <i class="fas fa-layer-group me-2"></i>Gruplar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Mappings/Index">
-                                <i class="fas fa-layer-group me-2"></i>Mappings
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Logs/Index">
-                                <i class="fas fa-history me-2"></i>Loglar
-                            </a>
-                        </li>
-
-                        <hr class="bg-white my-3" />
-
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Index" asp-area="">
-                                <i class="fas fa-globe me-2"></i>Siteye Git
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="Admin" asp-page="/Account/Logout">
-                                <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+            <nav class="col-md-3 col-lg-2 d-none d-md-block">
+                @await Html.PartialAsync("~/Areas/Admin/Pages/Shared/_AdminNav.cshtml")
             </nav>
 
-            <!-- Main Content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 admin-content">
+            <main id="main-content" class="col-md-9 ms-sm-auto col-lg-10 admin-content" role="main">
                 @if (TempData["SuccessMessage"] != null)
                 {
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="fas fa-check-circle me-2"></i>
                         @TempData["SuccessMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
                     </div>
                 }
 
@@ -230,7 +111,7 @@
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-circle me-2"></i>
                         @TempData["ErrorMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
                     </div>
                 }
 
@@ -239,9 +120,48 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        (function () {
+            try {
+                var offcanvasEl = document.getElementById('adminOffcanvas');
+                if (offcanvasEl && typeof bootstrap !== 'undefined') {
+                    var bsOff = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+
+                    // Offcanvas üzerindeki linke tıklandığında menüyü kapat (sadece varsa)
+                    document.querySelectorAll('#adminOffcanvas .admin-sidebar a.nav-link').forEach(function (el) {
+                        el.addEventListener('click', function () { bsOff.hide(); });
+                    });
+                }
+
+                // Aktif linki işaretle (güvenli)
+                var currentPath = location.pathname.replace(/\/$/, '');
+                var navLinks = document.querySelectorAll('.admin-nav a.nav-link');
+                if (navLinks && navLinks.length) {
+                    navLinks.forEach(function (a) {
+                        try {
+                            var href = a.getAttribute('href');
+                            if (!href) return;
+                            var hrefPath = new URL(href, location.origin).pathname.replace(/\/$/, '');
+                            if (hrefPath === currentPath) {
+                                a.classList.add('active');
+                                a.setAttribute('aria-current', 'page');
+                            } else {
+                                a.classList.remove('active');
+                                a.removeAttribute('aria-current');
+                            }
+                        } catch (e) {
+                            // ignore invalid hrefs
+                            console && console.debug && console.debug('admin nav parse err', e);
+                        }
+                    });
+                }
+            } catch (err) {
+                console && console.error && console.error('Admin layout init error:', err);
+            }
+        })();
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

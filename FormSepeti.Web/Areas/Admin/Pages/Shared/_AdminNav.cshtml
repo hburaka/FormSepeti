@@ -1,0 +1,72 @@
+﻿<nav class="admin-sidebar" role="navigation" aria-label="Admin navigation">
+    <div class="position-sticky">
+        <div class="text-center mb-4">
+            <h4 class="text-white">
+                <i class="fas fa-shield-alt me-2" aria-hidden="true"></i>
+                Admin Panel
+            </h4>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <p class="text-white-50 small mb-0">
+                    @(User.FindFirst("FullName")?.Value ?? User.Identity.Name ?? "Admin")
+                </p>
+            }
+        </div>
+
+        <ul class="nav flex-column admin-nav" role="menu">
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Dashboard/Index" role="link">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Users/Index" role="link">
+                    <i class="fas fa-users me-2"></i>Kullanıcılar
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Forms/Index" role="link">
+                    <i class="fas fa-file-alt me-2"></i>Formlar
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Packages/Index" role="link">
+                    <i class="fas fa-box me-2"></i>Paketler
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Groups/Index" role="link">
+                    <i class="fas fa-layer-group me-2"></i>Gruplar
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Mappings/Index" role="link">
+                    <i class="fas fa-layer-group me-2"></i>Form-Grup Eşleştirme
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-page="/Logs/Index" role="link">
+                    <i class="fas fa-history me-2"></i>Loglar
+                </a>
+            </li>
+
+            <hr class="bg-white my-3" />
+
+            <li class="nav-item" role="none">
+                <a class="nav-link" asp-page="/Index" asp-area="" role="menuitem">
+                    <i class="fas fa-globe me-2" aria-hidden="true"></i>Siteye Git
+                </a>
+            </li>
+
+            <li class="nav-item mt-2" role="none">
+                @* Logout as POST with antiforgery token *@
+                <form method="post" asp-area="Admin" asp-page="/Account/Logout" class="d-inline" role="form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-link nav-link p-0 text-start" style="color:inherit;">
+                        <i class="fas fa-sign-out-alt me-2" aria-hidden="true"></i>Çıkış Yap
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </div>
+</nav>
