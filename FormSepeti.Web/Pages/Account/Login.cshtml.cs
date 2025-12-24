@@ -134,7 +134,7 @@ namespace FormSepeti.Web.Pages.Account
             };
 
             await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
+                CookieAuthenticationDefaults.AuthenticationScheme, // veya null ile default
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties
             );

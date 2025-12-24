@@ -31,17 +31,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(opts =>
 // ✅ Authentication & Authorization - GÜVENLİK GÜÇLENDİRMESİ
 builder.Services.AddAuthentication(options =>
 {
+    // Default user cookie scheme
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
+    options.Cookie.Name = ".FormSepeti.Auth";
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
     
     // ✅ GÜVENLIK AYARLARI
-    options.Cookie.Name = ".FormSepeti.Auth";
     options.Cookie.HttpOnly = true;  // ✅ JavaScript erişimini engelle (XSS koruması)
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // ✅ Sadece HTTPS
     options.Cookie.SameSite = SameSiteMode.Lax;  // ✅ CSRF koruması (Strict yerine Lax - Google callback için)
@@ -56,7 +57,16 @@ builder.Services.AddAuthentication(options =>
     {
         OnRedirectToLogin = context =>
         {
-            context.Response.StatusCode = 401;
+            // If request expects JSON (fetch/AJAX), return 401
+            var acceptHeader = context.Request.Headers["Accept"].ToString();
+            var isApiCall = acceptHeader.Contains("application/json") || context.Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+            if (isApiCall)
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            // otherwise redirect
             context.Response.Redirect(options.LoginPath);
             return Task.CompletedTask;
         }
@@ -64,12 +74,12 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie("AdminScheme", options =>
 {
+    options.Cookie.Name = ".FormSepeti.Admin";
     options.LoginPath = "/Admin/Account/Login";
     options.LogoutPath = "/Admin/Account/Logout";
     options.AccessDeniedPath = "/Admin/Account/AccessDenied";
     
     // ✅ ADMIN GÜVENLİK AYARLARI
-    options.Cookie.Name = ".FormSepeti.Admin";
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Strict;  // Admin için daha katı
@@ -196,7 +206,7 @@ builder.Services.AddScoped<IIyzicoPaymentService, IyzicoPaymentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IFormService, FormService>();
-builder.Services.AddScoped<ILoginAttemptService, LoginAttemptService>(); // Buraya ekledim
+// builder.Services.AddScoped<ILoginAttemptService, LoginAttemptService>(); // Buraya ekledim
 // ✅ YENİ - Rate Limiting Servisi (Singleton olmalı - uygulama boyunca tek instance)
 builder.Services.AddSingleton<ILoginAttemptService, LoginAttemptService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
